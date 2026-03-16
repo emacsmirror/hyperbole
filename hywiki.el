@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:     15-Mar-26 at 11:39:04 by Bob Weiner
+;; Last-Mod:     15-Mar-26 at 22:00:25 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -319,9 +319,6 @@ Use nil for no HyWiki mode indicator."
 (defvar hywiki-allow-suffix-referent-types '(page path-link)
   "List of referent type symbols that support # and :L line number suffixes.")
 
-(defvar hywiki-file-suffix ".org"
-  "File suffix string (including period) to use when creating HyWiki pages.")
-
 ;;;###autoload
 (defun hywiki-let-directory (option value)
   (set option value)
@@ -513,8 +510,12 @@ Nil by default."
   :initialize #'custom-initialize-default
   :group 'hyperbole-hywiki)
 
+(defvar hywiki-file-suffix ".org"
+  "File suffix string (including period) to use when creating HyWiki pages.")
+
 (defconst hywiki-word-regexp
-  "\\<\\([[:upper:]][[:alpha:]]+\\)\\>"
+  (format "\\<\\([[:upper:]][[:alpha:]]+\\)\\>\\(?:%s\\)?"
+          (regexp-quote hywiki-file-suffix))
   "Regexp that matches a HyWikiWord only.
 Do not use a start or end line/string anchor in this regexp.")
 
@@ -1075,14 +1076,15 @@ After successfully finding a referent, run `hywiki-display-referent-hook'."
 	 ;; "{key series}" wikiword
 	 '("Keys"         (hywiki-add-key-series hkey-value)
 	   "Add a HyWikiWord that executes a key series.")
+         ;; "path"
 	 '("pathLink"     (hywiki-add-path-link hkey-value)
 	   "Add a HyWikiWord that links to a path and possible position.")
 	 ;; "(hyperbole)Smart Keys"
 	 '("infoNode"     (hywiki-add-info-node hkey-value)
 	   "Add a HyWikiWord that displays an Info node.")
-	 ;; "ID: org-id"
+	 ;; [[id:org-id"][Org Heading Title]
 	 '("OrgID"        (hywiki-add-org-id hkey-value)
-	   "Add a HyWikiWord that displays an Org section given its Org ID.")
+	   "Add an Org link that displays an Org section given its Org ID.")
 	 ;; "pathname:line:col"
 	 ;; "#in-buffer-section"
 	 '("Page"         (hywiki-add-page hkey-value)
@@ -1363,34 +1365,32 @@ calling this function."
 
 (defun hywiki-add-org-id (wikiword)
   "Make WIKIWORD display an Org file or headline with an Org id.
-If no id exists, it is created.  Return the string \"ID: org-id-string\".
+Point must be in the buffer with the id.  If no id exists, it is created.
+Return the referent created with the form: '(org-id . <id-string>).
 
 If WIKIWORD is invalid, trigger a `user-error' if called interactively
 or return nil if not.
 
-After successfully adding the sexpression, run `hywiki-add-referent-hook'.
+After successfully adding the Org id, run `hywiki-add-referent-hook'.
 
 Use `hywiki-get-referent' to determine whether WIKIWORD exists prior to
 calling this function."
   (interactive (list (or (hywiki-word-at)
 			 (hywiki-word-read-new "Add/Edit HyWikiWord: "))))
-  (cl-destructuring-bind (_src-window referent-window)
-      (hmouse-choose-link-and-referent-windows)
-    (with-selected-window referent-window
-      (unless (hsys-org-mode-p)
-	(user-error "(hywiki-add-org-id): Referent buffer <%s> must be in org-mode, not %s"
-		    (buffer-name)
-		    major-mode))
-      (let ((org-id (with-suppressed-warnings ((callargs org-id-get))
-                      (if (>= (action:param-count #'org-id-get) 4)
-			(org-id-get nil nil nil t)
-		      (org-id-get)))))
-	(when (and (null org-id) buffer-read-only)
-	  (user-error "(hywiki-add-org-id): Referent buffer <%s> point has no Org ID and buffer is read-only"
-		      (buffer-name)))
-	(unless org-id
-	  (setq org-id (org-id-get-create)))
-	(hywiki-add-referent wikiword (cons 'org-id (concat "ID: " org-id)))))))
+  (unless (hsys-org-mode-p)
+    (user-error "(hywiki-add-org-id): Referent buffer <%s> must be in org-mode, not %s"
+		(buffer-name)
+		major-mode))
+  (let ((org-id (with-suppressed-warnings ((callargs org-id-get))
+                  (if (>= (action:param-count #'org-id-get) 4)
+		      (org-id-get nil nil nil t)
+		    (org-id-get)))))
+    (when (and (null org-id) buffer-read-only)
+      (user-error "(hywiki-add-org-id): Referent buffer <%s> point has no Org ID and buffer is read-only"
+		  (buffer-name)))
+    (unless org-id
+      (setq org-id (org-id-get-create)))
+    (hywiki-add-referent wikiword (cons 'org-id org-id))))
 
 (defun hywiki-display-org-id (_wikiword org-id)
   (hact 'link-to-org-id org-id))
@@ -1617,6 +1617,7 @@ or page exists."
 (defun hywiki-display-page (&optional wikiword file-name)
   "Display an optional WIKIWORD page and return the page file.
 Use `hywiki-display-page-function' to display the page.
+Trigger an error if the page is not found.
 
 If FILE-NAME is provided, it includes any #section from the WIKIWORD.
 
@@ -2920,15 +2921,42 @@ Always exclude minibuffer windows."
 					    (window-list frame :no-minibuf))))
 				(or frames (frame-list))))))
 
-(defun hywiki-get-page-file (file-stem-name)
-  "Return possibly non-existent path in `hywiki-directory' from FILE-STEM-NAME.
+(defun hywiki-get-existing-page-file (file-stem-name)
+  "Return existing `hywiki-directory' path from FILE-STEM-NAME or nil.
 FILE-STEM-NAME should not contain a directory and may have or may omit
 `hywiki-file-suffix' and an optional trailing #section.
 
-No validation of FILE-STEM-NAME is done except an empty string or null
-value returns nil."
+Checks only that FILE-STEM-NAME is not nil, not an empty string and does
+not contain a directory path or returns nil."
   (make-directory hywiki-directory t)
-  (unless (or (null file-stem-name) (string-empty-p file-stem-name))
+  (unless (or (null file-stem-name) (string-empty-p file-stem-name)
+              (file-name-directory file-stem-name))
+    (let (file-name
+          referent
+	  section)
+      ;; Remove any suffix from `file-stem-name' and make it singular
+      (if (string-match hywiki-word-suffix-regexp file-stem-name)
+	  (setq section (match-string 0 file-stem-name)
+		file-name (hywiki-get-singular-wikiword
+			   (substring file-stem-name 0 (match-beginning 0))))
+	(setq file-name file-stem-name))
+      (setq referent (hywiki-get-referent file-name))
+      (when (and (eq (car referent) 'page)
+                 ;; The referent replaces the page name with name.org, so can be next.
+                 (setq file-name (expand-file-name (cdr referent) hywiki-directory))
+                 (file-exists-p file-name))
+        (concat file-name section)))))
+
+(defun hywiki-get-page-file (file-stem-name)
+  "Return possibly non-existent `hywiki-directory' path from FILE-STEM-NAME.
+FILE-STEM-NAME should not contain a directory and may have or may omit
+`hywiki-file-suffix' and an optional trailing #section.
+
+Checks only that FILE-STEM-NAME is not nil, not an empty string and does
+not contain a directory path or returns nil."
+  (make-directory hywiki-directory t)
+  (unless (or (null file-stem-name) (string-empty-p file-stem-name)
+              (file-name-directory file-stem-name))
     (let (file-name
 	  section)
       ;; Remove any suffix from `file-stem-name' and make it singular
@@ -3366,7 +3394,7 @@ When NO-STATS is non-nil, don't include statistics in square brackets."
 (defun hywiki-org-get-heading-match-regexp (title)
   "Return a regexp that matches to the TITLE and start of an Org heading."
   ;; org-complex-heading-regexp + custom todo keywords + specific title
-  (format (concat "^\\(\\*+ +\\)"
+  (format (concat "^\\(\\*+[ \t]+\\)"
                   ;; optional todo keyword
 	          "\\(?:"
                   (if (hywiki-in-page-p)
@@ -3374,9 +3402,9 @@ When NO-STATS is non-nil, don't include statistics in square brackets."
                     org-todo-regexp)
                   "\\)?"
                   ;; optional priority
-	          "\\(?: +\\(\\[#.\\]\\)\\)?"
+	          "\\(?:[ \t]*\\(\\[#.\\]\\)\\)?"
                   ;; title and optional stats
-	          "\\(?: +\\(%s\\)\\)")
+	          "\\(?:[ \t]*\\(%s\\)\\)")
           ;; exact title
           (regexp-quote title)))
 
@@ -4580,15 +4608,15 @@ Initializes `hywiki--org-todo-regexp' and `hywiki--org-heading-regexp'."
         (concat
          ;; Make leading asterisks optional since (org-get-heading) may have
          ;; already removed them.
-         "^\\(\\*+ +\\)?"
+         "^\\(\\*+[ \t]+\\)?"
          ;; optional todo keyword
 	 "\\(?:" hywiki--org-todo-regexp "\\)?"
          ;; optional priority
-	 "\\(?: +\\(\\[#.\\]\\)\\)?"
+	 "\\(?:[ \t]*\\(\\[#.\\]\\)\\)?"
          ;; optional title and stats
-	 "\\(?: +\\(.*?\\)\\)??"
+	 "\\(?:[ \t]*\\(.*?\\)\\)??"
          ;; optional tags
-	 "\\(?:[ \t]+\\(:[[:alnum:]_@#%:]+:\\)\\)?"
+	 "\\(?:[ \t]*\\(:[[:alnum:]_@#%:]+:\\)\\)?"
 	 "[ \t]*$")))
 
 ;;; ************************************************************************

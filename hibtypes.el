@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    19-Sep-91 at 20:45:31
-;; Last-Mod:     15-Mar-26 at 10:16:58 by Bob Weiner
+;; Last-Mod:     15-Mar-26 at 19:50:55 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -188,7 +188,7 @@ only to prevent false matches."
 		 (save-excursion (beginning-of-line)
 				 (re-search-forward ":\\(CUSTOM_\\)?ID:[ \t]+"
 						    (line-end-position) t)))
-	    (hact 'message "On ID definition; use {C-u M-RET} to copy a link to an ID.")
+	    (hact 'message "On Org ID definition; use {C-u M-RET} to copy a link to an ID.")
 	  (when (let ((inhibit-message t) ;; Inhibit org-id-find status msgs
 		      (obuf (current-buffer))
 		      (omode major-mode))
@@ -993,8 +993,7 @@ See `hpath:find' function documentation for special file display options."
 	     ;; Next variable should come last as it can overwrite the match-data
 	     file)
         (when (setq file (or (hpath:is-p (hpath:expand label))
-                             (and (not (file-name-directory label))
-                                  (hywiki-get-page-file label))))
+                             (hywiki-get-existing-page-file label)))
           (ibut:label-set label start (+ start (length label)))
           (if col-num
               (hact 'link-to-file-line-and-column file line-num col-num)
@@ -1025,8 +1024,7 @@ LINE-NUM may be an integer or string."
 			      (member (concat "." ext) (get-load-suffixes)))
 			  (ignore-errors (find-library-name file)))
                      (hpath:is-p (expand-file-name file))
-                     (and (not (file-name-directory file))
-                          (hywiki-get-page-file file)))))
+                     (hywiki-get-existing-page-file file))))
     (when (file-exists-p (hpath:normalize file))
       (actypes::link-to-file-line file line-num))))
 
@@ -1771,8 +1769,7 @@ not yet existing HyWikiWords."
     (cl-destructuring-bind (wikiword start end)
 	(hywiki-referent-exists-p :range)
       (when wikiword
-	(unless (or (ibtypes::pathname-line-and-column)
-		    (ibtypes::pathname))
+	(unless (file-exists-p (hywiki-word-from-reference wikiword))
 	  (if (and start end)
 	      (ibut:label-set wikiword start end)
 	    (ibut:label-set wikiword))

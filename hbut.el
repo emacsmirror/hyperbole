@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    18-Sep-91 at 02:57:09
-;; Last-Mod:     15-Mar-26 at 02:02:37 by Bob Weiner
+;; Last-Mod:     15-Mar-26 at 22:16:44 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -586,9 +586,7 @@ For interactive creation, use `hui:ebut-create' instead."
 	    (hattr:set 'hbut:current 'args args)
 	    (ebut:operate label nil))
 	(error (hattr:clear 'hbut:current)
-	       (if (and (listp (cdr err)) (= (length (cdr err)) 1))
-		   (error "(ebut:program): actype arg must be a bound symbol (not a string): %S" actype)
-		 (error "(ebut:program): %S" err)))))))
+	       (error "(ebut:program): %S" err))))))
 
 (defun    ebut:search (string out-buf &optional match-part)
   "Write explicit button lines matching STRING to OUT-BUF.

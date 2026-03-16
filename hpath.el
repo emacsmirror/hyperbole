@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     1-Nov-91 at 00:44:23
-;; Last-Mod:     15-Mar-26 at 00:28:25 by Bob Weiner
+;; Last-Mod:     16-Mar-26 at 00:11:40 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -571,11 +571,9 @@ When embedded within a path, the format is ${variable}."
 (defvar hpath:rfc "https://www.ietf.org/rfc/rfc%s.txt"
   "*Url pattern for (hpath:rfc rfc-num) to get the RFC document for `rfc-num'.")
 
-(defcustom hpath:suffixes '(".org" ".gz" ".Z")
+(defcustom hpath:suffixes '(".gz" ".Z")
   "List of filename suffixes to add or remove within hpath calls.
-Used by `hpath:exists-p' and `hpath:substitute-dir'.  Includes \".org\" to
-expand HyWiki page references that have only instance, line, or column
-references and are handled by 'pathname-line-and-column'."
+Used by `hpath:exists-p' and `hpath:substitute-dir'."
   :type '(repeat string)
   :group 'hyperbole-commands)
 
@@ -996,7 +994,7 @@ or `~'."
 				     ;; Could be a shell command from a semicolon separated
 				     ;; list; ignore if so
 				     nil)
-				    (t (or (hywiki-get-page-file subpath)
+				    (t (or (hywiki-get-existing-page-file subpath)
                                            (expand-file-name subpath))))
 			    ;; Only default to current path if know are within a PATH value
 			    (when (string-match-p hpath:path-variable-value-regexp path)
@@ -1280,6 +1278,11 @@ only if it exists, otherwise, return nil."
 		  (string-match-p "[\\/~]" substituted-path))
 	      ;; Don't expand if an Info path, URL, #anchor or has a directory prefix
 	      substituted-path)
+             ((and (null (file-name-directory substituted-path))
+                   ;; Could be an existing HyWikiWord
+                   (let ((page-file (cdr (hywiki-get-referent substituted-path))))
+                     (when page-file
+                       (setq substituted-path (expand-file-name page-file hywiki-directory))))))
 	     (t (expand-file-name substituted-path))))
       (if (and (stringp expanded-path)
 	       (or (file-exists-p expanded-path)
@@ -1548,10 +1551,14 @@ but locational suffixes within the file are utilized."
     (if (string-empty-p path)
 	(setq path ""
 	      pathname "")
-      ;; Never expand pathnames with modifier prepended or Wiki page names
+      ;; Never expand pathnames with modifier prepended
+      (let ((referent (hywiki-get-referent path)))
+        (when (eq (car referent) 'page)
+          ;; This replaces the page name with name.org, so can be expanded
+          ;; down below.
+          (setq path (cdr referent))))
       (cond (modifier
 	     (setq path (hpath:resolve path)))
-            ((hywiki-page-exists-p path))
 	    (t (setq path (hpath:expand path)
 	             pathname (hpath:absolute-to path default-directory))
 	       ;; Remove http file:// url prefix that`hpath:absolute-to' may have
@@ -1771,7 +1778,7 @@ frame.  Always return t."
     (setq filename (substring filename (match-end 0))))
   (hpath:find
    (concat
-    (or (hywiki-get-page-file filename) filename)
+    (or (hywiki-get-existing-page-file filename) filename)
     (cond ((integerp line-num)
 	   (concat ":" (int-to-string line-num)))
 	  ((stringp line-num)
@@ -2311,15 +2318,15 @@ point ends within the narrowed region."
     (setq path (string-trim path "\"" "\"")))
   path)
 
-(defun hpath:normalize (filename)
-  "Normalize and return an existing, readable FILENAME, else signal an error.
+(defun hpath:normalize (path)
+  "Normalize and return an existing, readable PATH, else signal an error.
 Replace Emacs Lisp variables and environment variables (format of
-${var}) with their values in FILENAME's path.  The first matching
+${var}) with their values in PATH's path.  The first matching
 value for variables like `${PATH}' is used."
-  (let ((buf (hpath:find-noselect filename)))
-    (if buf
-	(hpath:validate (hpath:substitute-value (hypb:buffer-file-name buf)))
-      (error "(hpath:normalize): '\"%s\" is not a readable filename" filename))))
+  (setq path (hpath:validate (hpath:substitute-value path)))
+  (if (file-readable-p path)
+      path
+    (error "(hpath:normalize): '\"%s\" is not a readable path" path)))
 
 (defun hpath:validate (path)
   "Validate PATH is readable and return it in Posix format.
@@ -2333,15 +2340,18 @@ to it."
   (unless (stringp path)
     (error "(hpath:validate): \"%s\" is not a pathname" path))
   (setq path (hpath:mswindows-to-posix path))
-  (cond ((or (string-match "[()]" path) (hpath:remote-p path))
-	 ;; info or remote path, so don't validate
-	 path)
-	((if (not (hpath:www-p path))
-	     ;; Otherwise, must not be a WWW link ref and must be a readable path.
-	     (let ((return-path (hpath:exists-p path)))
-	       (and return-path (file-readable-p return-path)
-		    return-path))))
-	(t (error "(hpath:validate): \"%s\" is not readable" path))))
+  (let* ((suffix-start (cl-position ?# path))
+          (path-only (substring path 0 suffix-start))
+          (suffix (substring path suffix-start)))
+    (cond ((or (string-match "[()]" path) (hpath:remote-p path))
+	   ;; info or remote path, so don't validate
+	   path)
+	  ((if (not (hpath:www-p path-only))
+	       ;; Otherwise, must not be a WWW link ref and must be a readable path.
+	       (let ((return-path (hpath:exists-p path-only)))
+	         (and return-path (file-readable-p return-path)
+		      (concat return-path suffix)))))
+	  (t (error "(hpath:validate): \"%s\" is not readable" path)))))
 
 ;;; URL Handling
 (defun hpath:find-file-urls-p ()
@@ -2662,6 +2672,10 @@ Otherwise return nil."
 	   ;; (error "(hpath:get-single-string-variable-value): Value of var-name, \"%s\", must be a string or list" var-name)
 	   (setq val nil)))
     val))
+
+(defun hpath:strip-suffix (path)
+  "Strip any suffix including and after '#' and return the remaining path."
+  (when (stringp path) (substring path 0 (cl-position ?# path))))
 
 (defun hpath:substitute-dir (path-prefix var-name rest-of-path trailing-dir-sep-flag &optional return-path-flag)
   "Return directory after substitutions.

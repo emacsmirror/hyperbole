@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    23-Sep-91 at 20:34:36
-;; Last-Mod:     14-Mar-26 at 17:35:39 by Bob Weiner
+;; Last-Mod:     15-Mar-26 at 14:44:00 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -640,7 +640,8 @@ information on how to specify a mail reader to use."
 		    mail-msg-id mail-file)))))
 
 (defact link-to-org-id (id &optional title)
-  "Display the Org entry, if any, for ID with optional TITLE."
+  "Display the Org entry, if any, for ID with optional TITLE.
+ID is a uuid without any 'id:' prefix."
   (when (stringp id)
     (let* ((inhibit-message t) ;; Inhibit org-id-find status msgs
 	   (m (or (and (featurep 'org-roam) (org-roam-id-find id 'marker))

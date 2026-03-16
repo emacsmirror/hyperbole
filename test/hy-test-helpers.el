@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell <matsl@gnu.org>
 ;;
 ;; Orig-Date:    30-Jan-21 at 12:00:00
-;; Last-Mod:     18-Oct-25 at 00:31:06 by Mats Lidell
+;; Last-Mod:     15-Mar-26 at 23:21:21 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -77,6 +77,7 @@ processing."
 
 (defun hy-test-helpers:kill-buffer (buffer)
   "Kill BUFFER if it exists."
+  (unless buffer (debug))
   (when (get-buffer buffer)
     (kill-buffer buffer)))
 

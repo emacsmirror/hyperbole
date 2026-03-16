@@ -1,5 +1,55 @@
 2026-03-15  Bob Weiner  <rsw@gnu.org>
 
+* test/demo-tests.el (fast-demo-display-kotl-starting-from-cell,
+                      demo-implicit-button-hash-link-test)
+                      demo-implicit-button-line-and-column-rtest):
+    Update these to remove 'hy-test-helpers:kill-buffer' since 'with-temp-buffer'
+    cleans it up.  This eliminates a null buffer error.
+
+* hpath.el (hpath:normalize): Handle directory paths and avoid reading in the
+    file to handle it.
+           (hpath:validate): Fix to strip #suffix before validation and add
+    it back on return.
+* hibtypes.el (hywiki-existing-word): Simplify pathname check without calling
+    other ibtypes.
+
+* hpath.el (hpath:suffixes): Remove ".org" as it triggers pathname ibtype when
+    it shouldn't and overrides `hywiki-existing-word'.
+
+* hywiki.el (hywiki-add-org-id): Remove (hmouse-choose-link-and-referent-windows)
+    as this is not what inserts a link but just creates the wikiword referent.
+            (hywiki-word-regexp): Add optional .org suffix so "WikiWord.org#section"
+    works.
+
+* hywiki.el (hywiki-referent-menu): Change from inserting a string link
+    to an Org link that includes the associated Org heading title.  Change
+    format from "ID: uuid" to [[id:uuid][title]].
+    (hywiki-add-org-id):
+  test/hywiki-tests.el (hywiki-tests--add-org-id):
+                       (hywiki-tests--save-referent-org-id):
+                       (hywiki-tests--add-org-id): Add reading back the org-id
+    referent.
+                       (hywiki-tests--save-referent-org-id): Delete this test;
+    covered better by 'hywiki-tests--add-org-id'.
+  hui.el (hui:link-possible-types): Update id handling in all of these.
+
+* hywiki.el (hywiki-get-page-file, hywiki-get-existing-page-file): Add
+    second function and check that 'file-stem-name' does not contain
+    a directory, so it is not returned with the wrong dir attached.
+  hpath.el (hpath:at-p, hpath:find-line):
+  hibtypes.el (pathname-line-and-column, hib-link-to-file-line): Call
+    the new fuction in these four functions.
+
+* hywiki.el (hywiki-org-get-heading-match-regexp,
+             hywiki--org-set-heading-regexp): Make whitespace before
+    optional components optional and allow for tabs.
+
+* hywiki.el (hywiki-referent-menu): Change all "ID: " to "id:" to match
+    how Org works with the id: link type prefix when specifying ids.
+
+* hpath.el (hpath:find, hpath:expand): Fix to properly expand HyWiki
+    page references.
+
 * test/hywiki-tests.el (hywiki-tests--save-referent-global-button-use-menu):
     Rewrite to not use mocking.  Fixes this to work with latest
     'hpath:find' as well.
@@ -13,8 +63,7 @@
     directory
               (pathname-line-and-column, hib-link-to-file-line): Call
     'hywiki-get-page-file' only if 'label' has no directory attached.  This fixes
-    a problem where ".org" is
-    attached improperly to the filename.
+    a problem where ".org" is attached improperly to the filename.
 * hpath.el (hpath:at-p, hpath:find-line): Handle pathname expansion of HyWiki
     page names.
 
@@ -25,10 +74,7 @@
 
 2026-03-14  Bob Weiner  <rsw@gnu.org>
 
-* hpath.el (hpath:suffixes): Add ".org" suffix to expand HyWiki page references
-    that have only instance, line, or column references and are handled by
-    'pathname-line-and-column'."
-           (hpath:call): (file-exists-p "") returns t, so fix to check for empty
+* hpath.el (hpath:call): (file-exists-p "") returns t, so fix to check for empty
     string before calling that.
   hibtypes.el (hpath:is-p): Unless 'non-exist' arg is sent or path is a remote file,
     return path only if it exists.

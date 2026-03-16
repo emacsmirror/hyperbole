@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    19-Sep-91 at 21:42:03
-;; Last-Mod:     15-Mar-26 at 01:59:05 by Bob Weiner
+;; Last-Mod:     15-Mar-26 at 17:46:14 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -2055,26 +2055,33 @@ Buffer without File      link-to-buffer-tmp"
 				       (when (looking-at "[ \t]*:\\(CUSTOM_\\)?ID:[ \t]+\\([^ \t\r\n\f]+\\)")
 					 ;; Org ID definition
                                          (setq id (match-string 2)))))
-				    (t (let* ((id (thing-at-point 'symbol t)) ;; Could be a uuid or some other form of id
-					      (bounds (when id (bounds-of-thing-at-point 'symbol)))
-					      (start (when bounds (car bounds)))
-					      (case-fold-search t))
-					 ;; Org ID link - must have id: prefix or is ignored.
+				    (t (let*
+                                           ;; Could be a uuid or some other form of id.
+                                           ;; Syntax table may include or discard initial "id:".
+                                           ((possible-id (thing-at-point 'symbol t))
+					    (bounds (when possible-id (bounds-of-thing-at-point 'symbol)))
+					    (start (when bounds (car bounds)))
+					    (case-fold-search t))
+					 ;; Org ID link - must have id:
+                                         ;; prefix or is ignored but
+                                         ;; `thing-at-point' may have dropped it.
 					 (when start
-					   (save-excursion
-					     (goto-char (max (- start 3) (point-min)))
-					     (when (looking-at "\\bid:")
-                                               t))))))
+                                           (cond ((string-prefix-p "id:" possible-id t)
+                                                  (setq id (string-trim	(substring possible-id 3))))
+					         ((save-excursion
+					            (goto-char (max (- start 3) (point-min)))
+					            (looking-at "\\bid:"))
+                                                  (setq id possible-id)))))))
                               (when (hsys-org-uuid-is-p id)
-                                (unless (string-prefix-p "id:" id)
-                                  (setq id (concat "id:" id)))
 				(list 'link-to-org-id id
-                                      (hpath:org-normalize-title
-                                       (hywiki-org-format-heading heading
-			                                          t t t nil t))))))
+                                      (when heading
+                                        (hpath:org-normalize-title
+                                         (hywiki-org-format-heading heading t t t nil t)))))))
+                        ;;
                         ;; HyWiki reference
                         ((let ((ref (hywiki-referent-exists-p)))
 			   (and ref (list 'link-to-wikiword ref))))
+                        ;;
 			;; Next clause forces use of any ibut name in the link
 			;; and sets hbut:current button attributes.
 			(t (cond ((and (not (derived-mode-p 'dired-mode))

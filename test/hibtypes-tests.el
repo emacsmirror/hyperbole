@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell <matsl@gnu.org>
 ;;
 ;; Orig-Date:    20-Feb-21 at 23:45:00
-;; Last-Mod:     28-Feb-26 at 18:04:06 by Bob Weiner
+;; Last-Mod:     15-Mar-26 at 17:11:01 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -416,10 +416,10 @@ file.el:10:20: Warning: Message
 :ID: %s
 :END:
 
-<ID:%s>
+<id:%s>
 " id id))
           (goto-char (point-min))
-          (should (and (search-forward "<ID:") (looking-at-p id)))
+          (should (and (search-forward "<id:") (looking-at-p id)))
           (mocklet (((actypes::link-to-org-id-marker *) => t))
             (should (ibtypes::org-id))))
       (hy-delete-file-and-buffer file))))
