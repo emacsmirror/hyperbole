@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     1-Nov-91 at 00:44:23
-;; Last-Mod:     16-Mar-26 at 00:11:40 by Bob Weiner
+;; Last-Mod:     16-Mar-26 at 22:35:45 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1500,6 +1500,7 @@ buffer but don't display it.  Any modifier prefix is ignored in such cases
 but locational suffixes within the file are utilized."
   (interactive "FFind file: ")
   (unless (stringp pathname)
+    ;; (debug) ;; Enable debugging if nil is ever sent to `hpath:find'
     (error "(hpath:find): pathname arg must be a string, not, %S" pathname))
   ;; `pathname' ends as the whole argument sent in except for any
   ;; initial modifier character.
@@ -1943,7 +1944,7 @@ form is what is returned for PATH."
 		     (or (not (string-match-p "\\sw\\|\\s_" path))
 			 (string-match-p "[@#&!*]" path))))
       (when (or non-exist (file-remote-p path)
-                (file-exists-p (hpath:normalize path)))
+                (hpath:normalize path))
         path))))
 
 (defun hpath:org-normalize-title (title)
@@ -2323,10 +2324,8 @@ point ends within the narrowed region."
 Replace Emacs Lisp variables and environment variables (format of
 ${var}) with their values in PATH's path.  The first matching
 value for variables like `${PATH}' is used."
-  (setq path (hpath:validate (hpath:substitute-value path)))
-  (if (file-readable-p path)
-      path
-    (error "(hpath:normalize): '\"%s\" is not a readable path" path)))
+  ;; `hpath:validate' ensures the path is readable or triggers an error
+  (hpath:validate (hpath:substitute-value path)))
 
 (defun hpath:validate (path)
   "Validate PATH is readable and return it in Posix format.
@@ -2340,18 +2339,20 @@ to it."
   (unless (stringp path)
     (error "(hpath:validate): \"%s\" is not a pathname" path))
   (setq path (hpath:mswindows-to-posix path))
-  (let* ((suffix-start (cl-position ?# path))
-          (path-only (substring path 0 suffix-start))
-          (suffix (substring path suffix-start)))
-    (cond ((or (string-match "[()]" path) (hpath:remote-p path))
-	   ;; info or remote path, so don't validate
-	   path)
-	  ((if (not (hpath:www-p path-only))
+  (if (file-readable-p path)
+      path
+    (let* ((suffix-start (cl-position ?# path))
+           (path-only (substring path 0 suffix-start))
+           (suffix (when suffix-start (substring path suffix-start))))
+      (cond ((or (string-match "[()]" path) (hpath:remote-p path))
+	     ;; info or remote path, so don't validate
+	     path)
+	    ((unless (hpath:www-p path-only)
 	       ;; Otherwise, must not be a WWW link ref and must be a readable path.
 	       (let ((return-path (hpath:exists-p path-only)))
 	         (and return-path (file-readable-p return-path)
 		      (concat return-path suffix)))))
-	  (t (error "(hpath:validate): \"%s\" is not readable" path)))))
+	    (t (error "(hpath:validate): \"%s\" is not a readable path" path))))))
 
 ;;; URL Handling
 (defun hpath:find-file-urls-p ()

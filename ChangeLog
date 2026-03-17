@@ -1,3 +1,24 @@
+2026-03-16  Bob Weiner  <rsw@gnu.org>
+
+* hibtypes.el (action): Ensure if action name is bound only as a variable
+    that there are no arguments within the angle brackets.  If there are,
+    then it is not an action button.
+
+* test/hywiki-tests.el (hywiki-tests--save-referent-org-id): Fix to mock
+    'org-id-get' instead of 'org-id-get-create' and add call to
+    `hywiki-get-referent' to ensure referent is created and read back properly.
+
+* hywiki.el (hywiki-get-page-file): The page file may have previously been
+    resolved and sent as input here.  If it exists, simply use it.
+
+* hpath.el (hpath:is-p): Remove 'file-exists-p' call because 'hpath:normalize'
+    handles that while accounting for path #suffixes which the 'file-exists-p'
+    call mistakenly nullifies.
+           (hpath:validate): Fix that 'suffix' was set to the whole path string
+    when 'suffix-start' was null.  Now it is set properly to nil.
+    Also fix so if a file named "myfile#name", validate accepts it without
+    treating the #name as a suffic/section to be stripped.
+
 2026-03-15  Bob Weiner  <rsw@gnu.org>
 
 * test/demo-tests.el (fast-demo-display-kotl-starting-from-cell,

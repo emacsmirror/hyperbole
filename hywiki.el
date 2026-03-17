@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:     15-Mar-26 at 22:00:25 by Bob Weiner
+;; Last-Mod:     16-Mar-26 at 21:18:30 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -2949,26 +2949,29 @@ not contain a directory path or returns nil."
 
 (defun hywiki-get-page-file (file-stem-name)
   "Return possibly non-existent `hywiki-directory' path from FILE-STEM-NAME.
-FILE-STEM-NAME should not contain a directory and may have or may omit
-`hywiki-file-suffix' and an optional trailing #section.
+FILE-STEM-NAME may be an existing absolute file path; then, return it.
+Otherwise, FILE-STEM-NAME should not contain a directory and may have or may
+omit `hywiki-file-suffix' and an optional trailing #section.
 
 Checks only that FILE-STEM-NAME is not nil, not an empty string and does
 not contain a directory path or returns nil."
   (make-directory hywiki-directory t)
-  (unless (or (null file-stem-name) (string-empty-p file-stem-name)
-              (file-name-directory file-stem-name))
-    (let (file-name
-	  section)
-      ;; Remove any suffix from `file-stem-name' and make it singular
-      (if (string-match hywiki-word-suffix-regexp file-stem-name)
-	  (setq section (match-string 0 file-stem-name)
-		file-name (hywiki-get-singular-wikiword
-			   (substring file-stem-name 0 (match-beginning 0))))
-	(setq file-name file-stem-name))
-      (concat (expand-file-name file-name hywiki-directory)
-	      (unless (string-suffix-p hywiki-file-suffix file-name)
-		hywiki-file-suffix)
-	      section))))
+  (if (and (stringp file-stem-name) (file-readable-p file-stem-name))
+      file-stem-name
+    (unless (or (null file-stem-name) (string-empty-p file-stem-name)
+                (file-name-directory file-stem-name))
+      (let (file-name
+	    section)
+        ;; Remove any suffix from `file-stem-name' and make it singular
+        (if (string-match hywiki-word-suffix-regexp file-stem-name)
+	    (setq section (match-string 0 file-stem-name)
+		  file-name (hywiki-get-singular-wikiword
+			     (substring file-stem-name 0 (match-beginning 0))))
+	  (setq file-name file-stem-name))
+        (concat (expand-file-name file-name hywiki-directory)
+	        (unless (string-suffix-p hywiki-file-suffix file-name)
+		  hywiki-file-suffix)
+	        section)))))
 
 (defun hywiki-get-page-files ()
   "Return the list of existing HyWiki page file names.

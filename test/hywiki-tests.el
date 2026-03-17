@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell
 ;;
 ;; Orig-Date:    18-May-24 at 23:59:48
-;; Last-Mod:     16-Mar-26 at 00:33:31 by Bob Weiner
+;; Last-Mod:     16-Mar-26 at 21:52:06 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1453,9 +1453,10 @@ named WikiReferent with a non-page referent type."
         (unwind-protect
             (with-current-buffer (find-file filea)
               (hywiki-tests--insert "* header\n")
-              (mocklet (((org-id-get-create) => "generated-org-id"))
+              (mocklet (((org-id-get) => "generated-org-id"))
                 (goto-char (point-max))
-	        (hywiki-add-org-id wiki-word-non-page)))
+	        (hywiki-add-org-id wiki-word-non-page)
+                (hywiki-get-referent wiki-word-non-page)))
 	  (hy-delete-file-and-buffer filea))))))
 
 ;; !! FIXME: Add Org-id links tests.

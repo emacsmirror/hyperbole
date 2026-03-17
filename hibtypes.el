@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    19-Sep-91 at 20:45:31
-;; Last-Mod:     15-Mar-26 at 19:50:55 by Bob Weiner
+;; Last-Mod:     16-Mar-26 at 23:02:23 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -37,7 +37,7 @@
 ;;; Other required Elisp libraries
 ;;; ************************************************************************
 
-(require 'cl-lib) ;; for cl-count
+(require 'cl-lib) ;; for cl-count and cl-find
 (require 'find-func) ;; used by grep-msg ibtype
 (eval-when-compile (require 'hversion))
 (require 'hactypes)
@@ -1631,7 +1631,7 @@ action type, function symbol to call or test to execute, i.e.
       (let ((hbut:max-len 0)
 	    (name (hattr:get 'hbut:current 'name))
 	    (testing-flag (when (bound-and-true-p ert--running-tests) t))
-            actype actype-sym action args lbl var-flag)
+            actname actype actype-sym action args is-var lbl sep var-flag)
 
         ;; Continue only if there if there is one of:
         ;;  1. `ert--running-tests' is non-nil
@@ -1647,15 +1647,18 @@ action type, function symbol to call or test to execute, i.e.
           (when (string-match "\\`\\$" lbl)
             (setq var-flag t
 	          lbl (substring lbl 1)))
-          (setq actype (if (string-match-p " " lbl) (car (split-string lbl)) lbl)
-                actype-sym (or (actype:elisp-symbol actype) (intern-soft actype))
+          (setq actname (if (setq sep (cl-position ?\  lbl)) (substring lbl 0 sep) lbl)
+                actype-sym (or (actype:elisp-symbol actname) (intern-soft actname))
 	        ;; Must ignore that (boundp nil) would be t here.
                 actype (and actype-sym
-			    (or (fboundp actype-sym) (boundp actype-sym)
+			    (or (fboundp actype-sym)
+                                (setq is-var (boundp actype-sym))
 			        (special-form-p actype-sym)
 			        (ert-test-boundp actype-sym))
 			    actype-sym))
-          (when actype
+          (when (and actype (or (null is-var)
+                                ;; is a variable so can't have arguments
+                                (equal actname lbl)))
 	    ;; For <hynote> buttons, need to double quote each argument so
 	    ;; 'read' does not change the idstamp 02 to 2.
 	    (when (and (memq actype '(hy hynote))
@@ -1663,7 +1666,7 @@ action type, function symbol to call or test to execute, i.e.
 	      (setq lbl (replace-regexp-in-string "\"\\(.*\\)\\'" "\\1\""
 					          (combine-and-quote-strings
 					           (split-string lbl) "\" \""))))
-            (setq action (read (concat "(" lbl ")"))
+            (setq action (ignore-errors (read (concat "(" lbl ")")))
 	          args (cdr action))
 	    ;; Ensure action uses an fboundp symbol if executing a
 	    ;; Hyperbole actype.
