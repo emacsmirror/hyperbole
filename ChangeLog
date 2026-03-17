@@ -1,3 +1,13 @@
+2026-03-17  Bob Weiner  <rsw@gnu.org>
+
+* hibtypes.el (pathname): Add a clause to handle "#section" links by
+    themselves as some change had broken this capability.
+
+* test/hibtypes-tests.el (ibtypes:org-id-test): Fix by adding missing
+    'Org' in front of 'ID' in the string match.
+
+* hpath.el (hpath:validate): Fix path and suffix handling edge cases.
+
 2026-03-16  Bob Weiner  <rsw@gnu.org>
 
 * hibtypes.el (action): Ensure if action name is bound only as a variable
