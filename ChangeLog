@@ -1,5 +1,8 @@
 2026-03-17  Bob Weiner  <rsw@gnu.org>
 
+* hpath.el (hpath:validate): 'suffix-start' can be nil, so replace
+    (zerop suffix-start) with (equal suffix-start 0).
+
 * hibtypes.el (pathname): Add a clause to handle "#section" links by
     themselves as some change had broken this capability.
 

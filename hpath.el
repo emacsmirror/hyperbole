@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     1-Nov-91 at 00:44:23
-;; Last-Mod:     17-Mar-26 at 19:07:23 by Bob Weiner
+;; Last-Mod:     17-Mar-26 at 22:51:48 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -2344,7 +2344,8 @@ to it."
     (let* ((suffix-start (cl-position ?# path))
            (path-only (substring path 0 suffix-start))
            (suffix (when suffix-start (substring path suffix-start))))
-      (cond ((zerop suffix-start) ;; all suffix, nothing to validate
+      ;; `suffix-start' may be nil, so don't use `zerop' or `=' in next line
+      (cond ((equal suffix-start 0) ;; all suffix, nothing to validate
              path)
             ((or (string-match "[()]" path-only) (hpath:remote-p path-only))
 	     ;; info or remote path, so don't validate
