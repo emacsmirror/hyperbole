@@ -1,3 +1,103 @@
+2026-03-17  Bob Weiner  <rsw@gnu.org>
+
+* hibtypes.el (pathname): Add a clause to handle "#section" links by
+    themselves as some change had broken this capability.
+
+* test/hibtypes-tests.el (ibtypes:org-id-test): Fix by adding missing
+    'Org' in front of 'ID' in the string match.
+
+* hpath.el (hpath:validate): Fix path and suffix handling edge cases.
+
+2026-03-16  Bob Weiner  <rsw@gnu.org>
+
+* hibtypes.el (action): Ensure if action name is bound only as a variable
+    that there are no arguments within the angle brackets.  If there are,
+    then it is not an action button.
+
+* test/hywiki-tests.el (hywiki-tests--save-referent-org-id): Fix to mock
+    'org-id-get' instead of 'org-id-get-create' and add call to
+    `hywiki-get-referent' to ensure referent is created and read back properly.
+
+* hywiki.el (hywiki-get-page-file): The page file may have previously been
+    resolved and sent as input here.  If it exists, simply use it.
+
+* hpath.el (hpath:is-p): Remove 'file-exists-p' call because 'hpath:normalize'
+    handles that while accounting for path #suffixes which the 'file-exists-p'
+    call mistakenly nullifies.
+           (hpath:validate): Fix that 'suffix' was set to the whole path string
+    when 'suffix-start' was null.  Now it is set properly to nil.
+    Also fix so if a file named "myfile#name", validate accepts it without
+    treating the #name as a suffic/section to be stripped.
+
+2026-03-15  Bob Weiner  <rsw@gnu.org>
+
+* test/demo-tests.el (fast-demo-display-kotl-starting-from-cell,
+                      demo-implicit-button-hash-link-test)
+                      demo-implicit-button-line-and-column-rtest):
+    Update these to remove 'hy-test-helpers:kill-buffer' since 'with-temp-buffer'
+    cleans it up.  This eliminates a null buffer error.
+
+* hpath.el (hpath:normalize): Handle directory paths and avoid reading in the
+    file to handle it.
+           (hpath:validate): Fix to strip #suffix before validation and add
+    it back on return.
+* hibtypes.el (hywiki-existing-word): Simplify pathname check without calling
+    other ibtypes.
+
+* hpath.el (hpath:suffixes): Remove ".org" as it triggers pathname ibtype when
+    it shouldn't and overrides `hywiki-existing-word'.
+
+* hywiki.el (hywiki-add-org-id): Remove (hmouse-choose-link-and-referent-windows)
+    as this is not what inserts a link but just creates the wikiword referent.
+            (hywiki-word-regexp): Add optional .org suffix so "WikiWord.org#section"
+    works.
+
+* hywiki.el (hywiki-referent-menu): Change from inserting a string link
+    to an Org link that includes the associated Org heading title.  Change
+    format from "ID: uuid" to [[id:uuid][title]].
+    (hywiki-add-org-id):
+  test/hywiki-tests.el (hywiki-tests--add-org-id):
+                       (hywiki-tests--save-referent-org-id):
+                       (hywiki-tests--add-org-id): Add reading back the org-id
+    referent.
+                       (hywiki-tests--save-referent-org-id): Delete this test;
+    covered better by 'hywiki-tests--add-org-id'.
+  hui.el (hui:link-possible-types): Update id handling in all of these.
+
+* hywiki.el (hywiki-get-page-file, hywiki-get-existing-page-file): Add
+    second function and check that 'file-stem-name' does not contain
+    a directory, so it is not returned with the wrong dir attached.
+  hpath.el (hpath:at-p, hpath:find-line):
+  hibtypes.el (pathname-line-and-column, hib-link-to-file-line): Call
+    the new fuction in these four functions.
+
+* hywiki.el (hywiki-org-get-heading-match-regexp,
+             hywiki--org-set-heading-regexp): Make whitespace before
+    optional components optional and allow for tabs.
+
+* hywiki.el (hywiki-referent-menu): Change all "ID: " to "id:" to match
+    how Org works with the id: link type prefix when specifying ids.
+
+* hpath.el (hpath:find, hpath:expand): Fix to properly expand HyWiki
+    page references.
+
+* test/hywiki-tests.el (hywiki-tests--save-referent-global-button-use-menu):
+    Rewrite to not use mocking.  Fixes this to work with latest
+    'hpath:find' as well.
+
+* hbut.el (ibut:insert-text): Ensure line and col nums are prefixed with :L
+    and :C.
+* hywiki.el (hywiki-org-get-heading-match-regexp): Handle both HyWiki dir
+    custom todo keywords when in a page and Org standard todo keywords, otherwise.
+* hibtypes.el (pathname-line-and-column, hib-link-to-file-line): Expand HyWiki
+    page name using 'hywiki-get-page-file' before try to expand in current
+    directory
+              (pathname-line-and-column, hib-link-to-file-line): Call
+    'hywiki-get-page-file' only if 'label' has no directory attached.  This fixes
+    a problem where ".org" is attached improperly to the filename.
+* hpath.el (hpath:at-p, hpath:find-line): Handle pathname expansion of HyWiki
+    page names.
+
 2026-03-15  Mats Lidell  <matsl@gnu.org>
 
 * test/hyrolo-tests.el: Prefix all tests with hyrolo-tests. Use
@@ -21,6 +121,41 @@
     frame-position is called differenty in headless and native environment.
 
 2026-03-14  Bob Weiner  <rsw@gnu.org>
+
+* hpath.el (hpath:call): (file-exists-p "") returns t, so fix to check for empty
+    string before calling that.
+  hibtypes.el (hpath:is-p): Unless 'non-exist' arg is sent or path is a remote file,
+    return path only if it exists.
+
+* hui.el (require 'hsys-org): Add.
+  hibtypes.el (require 'hsys-org): Add.
+  hsys-org.el (hsys-org-uuid-is-p): Add and use in "hibtypes.el" and "hui.el".
+
+* hui.el (hui:link-possible-types): For Org/Org-Roam ids, send 2nd arg
+    of current heading string to 'link-to-org-id' call.
+         (hui:link-possible-types): If in a HyWiki page but not on a heading line,
+    use a 'link-to-wikiword' with the page name and line number.
+  hactypes.el (link-to-org-id): Add optional heading 'title' arg for use in
+    'hbut:insert-text' where ibut links are created.
+
+*  hbut.el (ibut:insert-text): For 'actypes::link-to-org-id', change from
+    a double-quoted link to a double square bracketed Org link.  This allows
+    including the title from the Org heading linked to which is stored in
+    the current Hyperbole button attribute, 'lbl-key'.
+
+* hui.el (hui:link-possible-types): For HyWiki links, wrap a call of
+    'hpath:org-normalize-title' around 'hywiki-org-format-heading' to ensure
+    everything but the title is removed.
+
+* hsys-org.el (hsys-org-link-at-p): Don't shrink label region down to just
+   the description part of the Org link, leave it as the entire space inside
+   the Org open and close brackets.  Remove this code:
+	      (when (string-match "\\]\\[" label)
+                (setq start (match-end 0)))
+   This makes link activation work better.
+
+* hibtypes.el (org-id, org-id:help): Fix to remove "id:" prefix so
+    that uuid check predicates succeed properly.
 
 * Makefile (HYPB_BIN_WARN): Fix preceding commentary on example use.
            (test-all TERM=xterm-256color): Add #(LET_VARIABLES).

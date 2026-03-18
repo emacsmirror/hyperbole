@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell
 ;;
 ;; Orig-Date:    18-May-24 at 23:59:48
-;; Last-Mod:     14-Mar-26 at 21:49:13 by Mats Lidell
+;; Last-Mod:     16-Mar-26 at 21:52:06 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1186,15 +1186,15 @@ Note special meaning of `hywiki-allow-plurals-flag'."
 		     (hywiki-get-referent wikiword))))))
 
 (ert-deftest hywiki-tests--add-org-id ()
-  "Verify `hywiki-add-org-id'."
+  "Verify `hywiki-add-org-id' and read back with `hywiki-get-referent'."
   ;; Error case - Non org-mode buffer
   (hywiki-tests--preserve-hywiki-mode
     (let ((wikiword "WikiWord")
           (filea (make-temp-file "hypb" nil ".txt")))
       (unwind-protect
           (with-current-buffer (find-file filea)
-            (mocklet (((hmouse-choose-link-and-referent-windows) => (list nil (get-buffer-window))))
-              (should-error (hywiki-add-org-id wikiword) :type '(error))))
+            ;; Error because not in Org mode
+            (should-error (hywiki-add-org-id wikiword) :type '(error)))
 	(hy-delete-file-and-buffer filea))
 
       (let ((filea (make-temp-file "hypb" nil ".org")))
@@ -1204,17 +1204,18 @@ Note special meaning of `hywiki-allow-plurals-flag'."
 
               ;; Error-case - No Org ID and read only
               (setq buffer-read-only t)
-              (mocklet (((hmouse-choose-link-and-referent-windows) => (list nil (get-buffer-window))))
-	        (should-error (hywiki-add-org-id wikiword) :type '(error))
+	      (should-error (hywiki-add-org-id wikiword) :type '(error))
 
-                ;; Normal case - Org-mode with Org ID
-                (goto-char (point-max))
-                (setq buffer-read-only nil)
-	        (let ((referent-value (cdr (hywiki-add-org-id wikiword))))
-		  (if (stringp referent-value)
-		      (should (string-prefix-p "ID: " referent-value))
-		    (error "(hywiki-tests--add-org-id): referent value is a non-string: %s" referent-value)))))
-	  (hy-delete-file-and-buffer filea))))))
+              ;; Normal case - Org-mode with Org ID
+              (goto-char (point-max))
+              (setq buffer-read-only nil)
+              (hywiki-add-org-id wikiword)
+	      (let* ((referent (hywiki-get-referent wikiword))
+                     (referent-type (car referent))
+                     (referent-value (cdr referent)))
+                (should (eq referent-type 'org-id))
+		(should (and (stringp referent-value) (not (string-empty-p referent-value))))))
+	(hy-delete-file-and-buffer filea))))))
 
 (ert-deftest hywiki-tests--add-org-roam-node ()
   "Verify `hywiki-add-org-roam-node'."
@@ -1365,21 +1366,19 @@ named WikiReferent with a non-page referent type."
   "Verify saving and loading a referent global-button works using Hyperbole's menu."
   (skip-unless (not noninteractive))
   (hywiki-tests--referent-test
-    (progn
-      (sit-for 0.2)
-      (cons 'global-button "global"))
-    (defvar test-buffer)
-    (let* ((test-file (make-temp-file "gbut" nil ".txt"))
-           (test-buffer (find-file-noselect test-file)))
+    (cons 'global-button "global")
+    (let* ((gbut-file (make-temp-file hbmap:filename nil nil))
+	   (hbmap:filename (file-name-nondirectory gbut-file))
+	   (hbmap:dir-user (file-name-directory gbut-file))
+	   (hbmap:dir-filename (expand-file-name  "HBMAP" hbmap:dir-user))
+           (gbut-buffer (find-file-noselect gbut-file)))
       (unwind-protect
-          (with-mock
-            (mock (hpath:find-noselect (expand-file-name hbmap:filename hbmap:dir-user)) => test-buffer)
-            (stub gbut:label-list => (list "global"))
-            (mock (gbut:act "global") => t)
-            (gbut:ebut-program "global" 'link-to-file test-file)
+	  (progn
+            (gbut:ebut-program "global" 'link-to-file gbut-file)
             (should (hact 'kbd-key "C-u C-h hhc WikiReferent RET g global RET"))
             (hy-test-helpers:consume-input-events))
-        (hy-delete-file-and-buffer test-file)))))
+        (hy-delete-files-and-buffers (list gbut-file hbmap:filename hbmap:dir-filename))))))
+
 
 ;; HyRolo
 (ert-deftest hywiki-tests--save-referent-hyrolo ()
@@ -1448,16 +1447,16 @@ named WikiReferent with a non-page referent type."
 (ert-deftest hywiki-tests--save-referent-org-id ()
   "Verify saving and loading a referent org id works."
   (hywiki-tests--referent-test
-    (cons 'org-id "ID: generated-org-id")
+    (cons 'org-id "generated-org-id")
     (save-excursion
       (let ((filea (make-temp-file "hypb" nil ".org")))
         (unwind-protect
             (with-current-buffer (find-file filea)
               (hywiki-tests--insert "* header\n")
-              (mocklet (((hmouse-choose-link-and-referent-windows) => (list nil (get-buffer-window)))
-                        ((org-id-get-create) => "generated-org-id"))
+              (mocklet (((org-id-get) => "generated-org-id"))
                 (goto-char (point-max))
-	        (hywiki-add-org-id wiki-word-non-page)))
+	        (hywiki-add-org-id wiki-word-non-page)
+                (hywiki-get-referent wiki-word-non-page)))
 	  (hy-delete-file-and-buffer filea))))))
 
 ;; !! FIXME: Add Org-id links tests.
@@ -2288,7 +2287,7 @@ expected result."
     (let ((hsys-org-enable-smart-keys t))
       (org-mode)
       (hywiki-tests--insert "[[file:WikiWord.org][WikiWord Description]]")
-      (font-lock-ensure)
+      ;; (font-lock-ensure)
       (search-backward "WikiWord")
       (should (eq (org-element-type (org-element-context)) 'link))
       (should (ibtype:test-p 'hywiki-existing-word)))))

@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell <matsl@gnu.org>
 ;;
 ;; Orig-Date:    30-Jan-21 at 12:00:00
-;; Last-Mod:      7-Mar-26 at 17:41:33 by Bob Weiner
+;; Last-Mod:     16-Mar-26 at 00:16:06 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -243,24 +243,20 @@
       (hy-test-helpers:should-last-message "Result = nil; Boolean value = False" cap))))
 
 (ert-deftest demo-implicit-button-hash-link-test ()
-  (unwind-protect
-      (with-temp-buffer
-        (insert (format "\"%s%s\"" (expand-file-name "README.md" hyperb:dir) "#why-was-hyperbole-developed"))
-        (goto-char 5)
-        (action-key)
-        (should (string= "README.md" (buffer-name)))
-        (should (looking-at "## Why was Hyperbole developed\\?")))
-    (hy-test-helpers:kill-buffer "README.md")))
+  (with-temp-buffer
+    (insert (format "\"%s%s\"" (expand-file-name "README.md" hyperb:dir) "#why-was-hyperbole-developed"))
+    (goto-char 5)
+    (action-key)
+    (should (string= "README.md" (buffer-name)))
+    (should (looking-at "## Why was Hyperbole developed\\?"))))
 
 (ert-deftest demo-implicit-button-line-and-column-rtest ()
-  (unwind-protect
-      (with-temp-buffer
-        (insert (format "\"%s%s\"" (expand-file-name "HY-ABOUT" hyperb:dir) ":5:46"))
-        (goto-char 5)
-        (action-key)
-        (should (string= "HY-ABOUT" (buffer-name)))
-        (should (looking-at "hyperbole/")))
-    (hy-test-helpers:kill-buffer "HY-ABOUT")))
+  (with-temp-buffer
+    (insert (format "\"%s%s\"" (expand-file-name "HY-ABOUT" hyperb:dir) ":5:46"))
+    (goto-char 5)
+    (action-key)
+    (should (string= "HY-ABOUT" (buffer-name)))
+    (should (looking-at "hyperbole/"))))
 
 ;; org
 (ert-deftest demo-org-hide-header-test ()
@@ -289,9 +285,8 @@
         (action-key)
         (should (string= "DEMO" (buffer-name)))
         (should (looking-at "\* GNU Hyperbole Full Demo")))
-    (progn
-      (hy-test-helpers:kill-buffer "MANIFEST")
-      (hy-test-helpers:kill-buffer "DEMO"))))
+    (hy-test-helpers:kill-buffer "MANIFEST")
+    (hy-test-helpers:kill-buffer "DEMO")))
 
 ;; Email compose
 (ert-deftest demo-mail-compose-test ()
@@ -807,19 +802,17 @@ enough files with matching mode loaded."
   "Verify a kotl file can be displayed properly from a cell ref."
   (let ((default-directory)
 	(buf))
-    (unwind-protect
-	(with-temp-buffer
-	  (setq default-directory hyperb:dir)
-          (insert (format "<%skotl/EXAMPLE.kotl#3b10|c2en>"
-			  default-directory))
-          (goto-char 5)
-          (action-key)
-	  (setq buf (current-buffer))
-          (should (string-suffix-p "EXAMPLE.kotl" buffer-file-name))
-          (should (looking-at-p "Cell Transposition:"))
-	  ;; Ensure visible cell length is cutoff at 2 lines
-	  (should (= 2 (hypb:string-count-matches "\n" (kcell-view:contents)))))
-      (hy-test-helpers:kill-buffer buf))))
+    (with-temp-buffer
+      (setq default-directory hyperb:dir)
+      (insert (format "<%skotl/EXAMPLE.kotl#3b10|c2en>"
+		      default-directory))
+      (goto-char 5)
+      (action-key)
+      (setq buf (current-buffer))
+      (should (string-suffix-p "EXAMPLE.kotl" buffer-file-name))
+      (should (looking-at-p "Cell Transposition:"))
+      ;; Ensure visible cell length is cutoff at 2 lines
+      (should (= 2 (hypb:string-count-matches "\n" (kcell-view:contents)))))))
 
 (provide 'demo-tests)
 

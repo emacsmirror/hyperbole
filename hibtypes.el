@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    19-Sep-91 at 20:45:31
-;; Last-Mod:     14-Mar-26 at 03:16:36 by Bob Weiner
+;; Last-Mod:     17-Mar-26 at 19:48:06 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -37,10 +37,11 @@
 ;;; Other required Elisp libraries
 ;;; ************************************************************************
 
-(require 'cl-lib) ;; for cl-count
+(require 'cl-lib) ;; for cl-count and cl-find
 (require 'find-func) ;; used by grep-msg ibtype
 (eval-when-compile (require 'hversion))
 (require 'hactypes)
+(require 'hsys-org)
 (require 'hypb)
 (require 'org-macs) ;; for org-uuid-regexp
 (require 'subr-x) ;; for string-trim
@@ -175,17 +176,19 @@ only to prevent false matches."
 	   (start (when bounds (car bounds)))
 	   (end   (when bounds (cdr bounds)))
 	   m)
+      ;; Remove any "ID:" or "id:" prefix
+      (when (and id (string-prefix-p "id:" id t))
+        (setq id (substring id 3)
+              start (+ start 3)))
       ;; Ignore ID definitions or when not on a possible ID
-      (when (and id (if (fboundp 'org-uuidgen-p)
-			(org-uuidgen-p id)
-		      (string-match org-uuid-regexp (downcase id))))
+      (when (hsys-org-uuid-is-p id)
 	(when (and start end)
 	  (ibut:label-set id start end))
 	(if (and (not assist-flag)
 		 (save-excursion (beginning-of-line)
 				 (re-search-forward ":\\(CUSTOM_\\)?ID:[ \t]+"
 						    (line-end-position) t)))
-	    (hact 'message "On ID definition; use {C-u M-RET} to copy a link to an ID.")
+	    (hact 'message "On Org ID definition; use {C-u M-RET} to copy a link to an ID.")
 	  (when (let ((inhibit-message t) ;; Inhibit org-id-find status msgs
 		      (obuf (current-buffer))
 		      (omode major-mode))
@@ -208,6 +211,9 @@ If the referenced location is found, return non-nil."
     (let ((id (thing-at-point 'symbol t)) ;; Could be a uuid or some other form of id
 	  m
 	  mpos)
+      ;; Remove any "ID:" or "id:" prefix
+      (when (and id (string-prefix-p "id:" id t))
+        (setq id (substring id 3)))
       ;; Ignore ID definitions or when not on a possible ID
       (when (and id
 		 (let ((inhibit-message t)) ;; Inhibit org-id-find status msgs
@@ -350,7 +356,10 @@ display options."
           ;; Match PATH-related Environment and Lisp variable names and
 	  ;; Emacs Lisp and Info files without any directory component.
           (when (setq path orig-path)
-            (cond ((and (string-match hpath:path-variable-regexp path)
+            (cond ((string-match "\\`#[^#]+" path)
+                   (apply #'ibut:label-set path (hpath:start-end path))
+		   (hact 'link-to-file path))
+                  ((and (string-match hpath:path-variable-regexp path)
 			(setq path (match-string-no-properties 1 path))
 			(hpath:is-path-variable-p path))
 		   (setq path (if (or assist-flag (hyperb:stack-frame '(hkey-help)))
@@ -490,7 +499,6 @@ handle any links they recognize first."
 	     ;; Prevent infinite recursion, e.g. if called via
 	     ;; `org-metareturn-hook' from `org-meta-return' invocation.
 	     (not (hyperb:stack-frame '(ibtypes::debugger-source org-meta-return))))
-    (require 'hsys-org)
     (declare-function hsys-org-link-at-p      "hsys-org" ())
     (declare-function hsys-org-set-ibut-label "hsys-org" (start-end))
     (let ((start-end (hsys-org-link-at-p)))
@@ -985,9 +993,10 @@ See `hpath:find' function documentation for special file display options."
              (col-num (when (match-end 4)
 			(string-to-number (match-string-no-properties 5 path-line-and-col))))
 	     (label (match-string-no-properties 1 path-line-and-col))
-	     ;; Next variable must come last as it can overwrite the match-data
-	     (file (hpath:expand label)))
-        (when (setq file (hpath:is-p file))
+	     ;; Next variable should come last as it can overwrite the match-data
+	     file)
+        (when (setq file (or (hpath:is-p (hpath:expand label))
+                             (hywiki-get-existing-page-file label)))
           (ibut:label-set label start (+ start (length label)))
           (if col-num
               (hact 'link-to-file-line-and-column file line-num col-num)
@@ -1017,8 +1026,9 @@ LINE-NUM may be an integer or string."
 		     (and (or (null (setq ext (file-name-extension file)))
 			      (member (concat "." ext) (get-load-suffixes)))
 			  (ignore-errors (find-library-name file)))
-		     (expand-file-name file))))
-    (when (file-exists-p file)
+                     (hpath:is-p (expand-file-name file))
+                     (hywiki-get-existing-page-file file))))
+    (when (file-exists-p (hpath:normalize file))
       (actypes::link-to-file-line file line-num))))
 
 (defib ipython-stack-frame ()
@@ -1624,7 +1634,7 @@ action type, function symbol to call or test to execute, i.e.
       (let ((hbut:max-len 0)
 	    (name (hattr:get 'hbut:current 'name))
 	    (testing-flag (when (bound-and-true-p ert--running-tests) t))
-            actype actype-sym action args lbl var-flag)
+            actname actype actype-sym action args is-var lbl sep var-flag)
 
         ;; Continue only if there if there is one of:
         ;;  1. `ert--running-tests' is non-nil
@@ -1640,15 +1650,18 @@ action type, function symbol to call or test to execute, i.e.
           (when (string-match "\\`\\$" lbl)
             (setq var-flag t
 	          lbl (substring lbl 1)))
-          (setq actype (if (string-match-p " " lbl) (car (split-string lbl)) lbl)
-                actype-sym (or (actype:elisp-symbol actype) (intern-soft actype))
+          (setq actname (if (setq sep (cl-position ?\  lbl)) (substring lbl 0 sep) lbl)
+                actype-sym (or (actype:elisp-symbol actname) (intern-soft actname))
 	        ;; Must ignore that (boundp nil) would be t here.
                 actype (and actype-sym
-			    (or (fboundp actype-sym) (boundp actype-sym)
+			    (or (fboundp actype-sym)
+                                (setq is-var (boundp actype-sym))
 			        (special-form-p actype-sym)
 			        (ert-test-boundp actype-sym))
 			    actype-sym))
-          (when actype
+          (when (and actype (or (null is-var)
+                                ;; is a variable so can't have arguments
+                                (equal actname lbl)))
 	    ;; For <hynote> buttons, need to double quote each argument so
 	    ;; 'read' does not change the idstamp 02 to 2.
 	    (when (and (memq actype '(hy hynote))
@@ -1656,7 +1669,7 @@ action type, function symbol to call or test to execute, i.e.
 	      (setq lbl (replace-regexp-in-string "\"\\(.*\\)\\'" "\\1\""
 					          (combine-and-quote-strings
 					           (split-string lbl) "\" \""))))
-            (setq action (read (concat "(" lbl ")"))
+            (setq action (ignore-errors (read (concat "(" lbl ")")))
 	          args (cdr action))
 	    ;; Ensure action uses an fboundp symbol if executing a
 	    ;; Hyperbole actype.
@@ -1762,8 +1775,7 @@ not yet existing HyWikiWords."
     (cl-destructuring-bind (wikiword start end)
 	(hywiki-referent-exists-p :range)
       (when wikiword
-	(unless (or (ibtypes::pathname-line-and-column)
-		    (ibtypes::pathname))
+	(unless (file-exists-p (hywiki-word-from-reference wikiword))
 	  (if (and start end)
 	      (ibut:label-set wikiword start end)
 	    (ibut:label-set wikiword))

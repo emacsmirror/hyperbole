@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    18-Sep-91 at 02:57:09
-;; Last-Mod:     30-Dec-25 at 14:42:06 by Mats Lidell
+;; Last-Mod:     16-Mar-26 at 22:11:38 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -391,7 +391,7 @@ Autoloads action function if need be to get the parameter list."
 ;;; ========================================================================
 
 (defun hact (&rest args)
-  "Perform action formed from rest of ARGS and return the result.
+  "Perform action function formed from rest of ARGS and return the result.
 The value of `hrule:action' determines what effect this has.  The
 default for `hrule:action' is `actype:act' which returns the result of
 the action unless it is nil, in which case t is returned instead, to
