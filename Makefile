@@ -357,12 +357,16 @@ curr_dir = $(shell pwd)
 ifeq ($(HYPB_NATIVE_COMP),yes)
 HYPB_BYTE_COMP_INFO = $(HYPB_ELC_ELN)
 HYPB_BYTE_COMP_FUNC = batch-byte+native-compile
+HYPB_BYTE_COMP_ELN_LOAD_PATH = --eval "(add-to-list			\
+	'native-comp-eln-load-path (expand-file-name \"eln-cache\"	\
+	user-emacs-directory) t))"
 else
 HYPB_BYTE_COMP_INFO = $(HYPB_ELC)
 HYPB_BYTE_COMP_FUNC = batch-byte-compile
 endif
 %.elc: %.el
 	$(HYPB_BYTE_COMP_INFO)$(EMACS) --batch --quick \
+	$(HYPB_BYTE_COMP_ELN_LOAD_PATH) \
 	--eval "(progn (add-to-list 'load-path \"$(curr_dir)\") (add-to-list 'load-path \"$(curr_dir)/kotl\"))" \
 	-l bytecomp ${HYPB_BIN_WARN} \
 	-f $(HYPB_BYTE_COMP_FUNC) $<
