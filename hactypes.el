@@ -641,7 +641,7 @@ information on how to specify a mail reader to use."
 
 (defact link-to-org-id (id &optional title)
   "Display the Org entry, if any, for ID with optional TITLE.
-ID is a uuid without any 'id:' prefix."
+ID is a uuid without any \\='id:' prefix."
   (when (stringp id)
     (let* ((inhibit-message t) ;; Inhibit org-id-find status msgs
 	   (m (or (and (featurep 'org-roam) (org-roam-id-find id 'marker))
