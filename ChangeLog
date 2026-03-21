@@ -1,3 +1,15 @@
+2026-03-21  Bob Weiner  <rsw@gnu.org>
+
+* test/hywiki-tests.el (hywiki-tests--referent-test): Remove these
+    lines for testing the cache every time this is called.  Test
+    that in a single test instead.
+                       (hywiki-tests--referent-cache-test): Add to
+    test saving and reloading a bookmark referent from cache.
+                       (hywiki-tests--save-referent-org-id): Fix to
+    call 'hywiki-add-referent' around 'hywiki-add-org-id' since
+    interactive runs of this test without that wrapper return nil
+    for comparison to the expected (cons 'org-id "generated-org-id".
+
 2026-03-21  Mats Lidell  <matsl@gnu.org>
 
 * Makefile (HYPB_BYTE_COMP_ELN_LOAD_PATH): Add users eln-cache last in

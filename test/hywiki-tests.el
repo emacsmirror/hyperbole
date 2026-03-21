@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell
 ;;
 ;; Orig-Date:    18-May-24 at 23:59:48
-;; Last-Mod:     16-Mar-26 at 21:52:06 by Bob Weiner
+;; Last-Mod:     21-Mar-26 at 13:55:18 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -26,6 +26,27 @@
 (require 'hsys-org)
 (require 'ox-publish)
 (require 'seq) ;; for `seq-take-while' and `seq-uniq'
+
+(defmacro hywiki-tests--referent-test (expected-referent &rest prepare)
+  "Template macro for generating a non-page HyWikiWord referent.
+EXPECTED-REFERENT is the result expected from `hywiki-get-referent'.
+The template runs the PREPARE body, and that must add the HyWikiWord
+named WikiReferent with a non-page referent type."
+  (declare (indent 0) (debug t))
+  `(let* ((hsys-consult-flag nil)
+	  (vertico-mode 0)
+	  (hywiki-directory (make-temp-file "hywiki" t))
+	  (wiki-word-non-page "WikiReferent")
+          (mode-require-final-newline nil))
+     (unwind-protect
+         (save-excursion
+           (should (equal '() (hywiki-get-wikiword-list)))
+
+           ,@prepare
+
+           (should (equal ,expected-referent (hywiki-get-referent wiki-word-non-page))))
+       (hy-delete-files-and-buffers (list (hywiki-cache-default-file)))
+       (hywiki-tests--delete-hywiki-dir-and-buffer hywiki-directory))))
 
 (defconst hywiki-tests--edit-string-pairs
    [
@@ -1229,37 +1250,35 @@ Note special meaning of `hywiki-allow-plurals-flag'."
         (should (equal '(org-roam-node . "node-title")
 		       (hywiki-get-referent wikiword)))))))
 
-(defmacro hywiki-tests--referent-test (expected-referent &rest prepare)
-  "Template macro for generating a non-page HyWikiWord referent.
-EXPECTED-REFERENT is the result expected from `hywiki-get-referent'.
-The template runs the PREPARE body, and that must add the HyWikiWord
-named WikiReferent with a non-page referent type."
-  (declare (indent 0) (debug t))
-  `(let* ((hsys-consult-flag nil)
-	  (vertico-mode 0)
-	  (hywiki-directory (make-temp-file "hywiki" t))
-	  (wiki-word-non-page "WikiReferent")
-          (mode-require-final-newline nil))
-     (unwind-protect
-         (save-excursion
-           (should (equal '() (hywiki-get-wikiword-list)))
+(ert-deftest hywiki-tests--referent-cache-test ()
+  "Test to check that a HyWiki referent read back from cache is as expected."
+  (let* ((hsys-consult-flag nil)
+	 (vertico-mode 0)
+	 (hywiki-directory (make-temp-file "hywiki" t))
+         (file (make-temp-file "hypb"))
+	 (wiki-word-non-page "WikiReferent")
+         (mode-require-final-newline nil))
+    (unwind-protect
+        (progn
+          (find-file file)
+          (hy-test-helpers:ert-simulate-keys (concat wiki-word-non-page "\r")
+            (hywiki-add-bookmark wiki-word-non-page))
+          (should (equal (cons 'bookmark wiki-word-non-page)
+                         (hywiki-get-referent wiki-word-non-page)))
 
-           ,@prepare
+	  ;; Stop checking existence of cache file since there may be
+	  ;; a race condition that makes it not exist yet.
+          ;; (should (file-exists-p (hywiki-cache-default-file)))
 
-	   ;; Stop checking existence of cache file since there may be
-	   ;; a race condition that makes it not exist yet.
-           ;; (should (file-exists-p (hywiki-cache-default-file)))
+          ;; Simulate reload from cache
+          (hywiki-cache-save)
+          (setq hywiki--referent-hasht nil)
+          (hywiki-make-referent-hasht)
 
-           (should (equal ,expected-referent (hywiki-get-referent wiki-word-non-page)))
-
-           ;; Simulate reload from cache
-           (hywiki-cache-save)
-           (setq hywiki--referent-hasht nil)
-           (hywiki-make-referent-hasht)
-
-           (should (equal ,expected-referent (hywiki-get-referent wiki-word-non-page))))
-       (hy-delete-files-and-buffers (list (hywiki-cache-default-file)))
-       (hywiki-tests--delete-hywiki-dir-and-buffer hywiki-directory))))
+          (should (equal (cons 'bookmark wiki-word-non-page)
+                         (hywiki-get-referent wiki-word-non-page))))
+      (hy-delete-files-and-buffers (list file (hywiki-cache-default-file)))
+      (hywiki-tests--delete-hywiki-dir-and-buffer hywiki-directory))))
 
 (ert-deftest hywiki-tests--save-referent-keyseries ()
   "Verify saving and loading a referent keyseries works ."
@@ -1455,8 +1474,8 @@ named WikiReferent with a non-page referent type."
               (hywiki-tests--insert "* header\n")
               (mocklet (((org-id-get) => "generated-org-id"))
                 (goto-char (point-max))
-	        (hywiki-add-org-id wiki-word-non-page)
-                (hywiki-get-referent wiki-word-non-page)))
+                (hywiki-add-referent wiki-word-non-page
+	                             (hywiki-add-org-id wiki-word-non-page))))
 	  (hy-delete-file-and-buffer filea))))))
 
 ;; !! FIXME: Add Org-id links tests.
