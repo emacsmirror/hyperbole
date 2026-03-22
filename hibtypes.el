@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    19-Sep-91 at 20:45:31
-;; Last-Mod:     17-Mar-26 at 19:48:06 by Bob Weiner
+;; Last-Mod:     22-Mar-26 at 14:08:04 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1013,14 +1013,20 @@ See `hpath:find' function documentation for special file display options."
   "Expand FILE and jump to its LINE-NUM in Hyperbole specified window.
 The variable `hpath:display-where' determines where to display the file.
 LINE-NUM may be an integer or string."
-  ;; RSW 12-05-2021 - Added hpath:expand in next line to
-  ;; resolve any variables in the path before checking if absolute.
-  (let ((source-loc (unless (file-name-absolute-p (hpath:expand file))
-                      (hbut:to-key-src t)))
-	ext)
-    (if (stringp source-loc)
-        (setq file (expand-file-name file (file-name-directory source-loc)))
-      (setq file (or (hpath:prepend-shell-directory file)
+  ;; RSW 12-05-2021 - Add hpath:expand in next line to resolve any variables
+  ;; in the path before checking if absolute.
+  ;; RSW 03-22-2026 - Save expanded-file and use if absolute in order to
+  ;; prefer files found in current directory over those in a `load-path' dir.
+  (let ((expanded-file (hpath:expand file))
+        source-loc)
+    (unless (and (stringp expanded-file) (file-name-absolute-p expanded-file))
+      (setq expanded-file nil))
+    (setq source-loc (unless expanded-file (hbut:to-key-src t)))
+    (cond (expanded-file
+           (setq file expanded-file))
+          ((stringp source-loc)
+           (setq file (expand-file-name file (file-name-directory source-loc))))
+          (t (setq file (or (hpath:prepend-shell-directory file)
 		     ;; find-library-name will strip file
 		     ;; suffixes, so use it only when the file
 		     ;; either doesn't have a suffix or has a
@@ -1029,7 +1035,7 @@ LINE-NUM may be an integer or string."
 			      (member (concat "." ext) (get-load-suffixes)))
 			  (ignore-errors (find-library-name file)))
                      (hpath:is-p (expand-file-name file))
-                     (hywiki-get-existing-page-file file))))
+                     (hywiki-get-existing-page-file file)))))
     (when (file-exists-p (hpath:normalize file))
       (actypes::link-to-file-line file line-num))))
 

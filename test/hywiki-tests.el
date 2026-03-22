@@ -1474,8 +1474,7 @@ Note special meaning of `hywiki-allow-plurals-flag'."
               (hywiki-tests--insert "* header\n")
               (mocklet (((org-id-get) => "generated-org-id"))
                 (goto-char (point-max))
-                (hywiki-add-referent wiki-word-non-page
-	                             (hywiki-add-org-id wiki-word-non-page))))
+	        (hywiki-add-org-id wiki-word-non-page)))
 	  (hy-delete-file-and-buffer filea))))))
 
 ;; !! FIXME: Add Org-id links tests.
