@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:     22-Mar-26 at 01:34:22 by Bob Weiner
+;; Last-Mod:     22-Mar-26 at 12:53:00 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1461,8 +1461,8 @@ Use `hywiki-get-referent' to determine whether a HyWiki page exists."
 		     current-prefix-arg))
   (if (hywiki-word-is-p page-name)
       (when (or noninteractive
-		(not (hash-empty-p (hywiki-get-referent-hasht)))
 		(hyperb:stack-frame '(ert-run-test))
+		(not (hash-empty-p (hywiki-get-referent-hasht)))
 		(y-or-n-p (concat "Create new HyWiki page `" page-name "'? ")))
 	;; Remove any #section suffix in PAGE-NAME.
 	(setq page-name (hywiki-get-singular-wikiword page-name))
@@ -3076,8 +3076,7 @@ regexps of wikiwords, if the hash table is out-of-date."
       (if (and (equal hywiki--pages-directory hywiki-directory)
 	       ;; If page files changed, have to rebuild referent hash table
 	       (not (hywiki-directory-modified-p))
-	       (hash-table-p hywiki--referent-hasht)
-	       (not (hash-empty-p hywiki--referent-hasht)))
+	       (hash-table-p hywiki--referent-hasht))
 	  hywiki--referent-hasht
 	;; Rebuild referent hash table
 	(hywiki-make-referent-hasht))

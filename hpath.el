@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     1-Nov-91 at 00:44:23
-;; Last-Mod:     17-Mar-26 at 22:51:48 by Bob Weiner
+;; Last-Mod:     22-Mar-26 at 13:41:04 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1625,9 +1625,9 @@ but locational suffixes within the file are utilized."
 				    ;; If no path, e.g. just an anchor link in a non-file buffer,
 				    ;; then must display within Emacs, ignoring any external programs.
 				    ((string-empty-p path)
-				     (if noselect
-					 (current-buffer)
-				       (hpath:display-buffer (current-buffer) display-where)))
+				     (unless noselect
+				       (hpath:display-buffer (current-buffer) display-where))
+                                     (current-buffer))
 				    (noselect
 				     (find-file-noselect path))
 				    (t (funcall (hpath:display-path-function display-where) path)))))
