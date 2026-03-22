@@ -130,6 +130,29 @@
         (should (= (current-column) 45)))
     (kill-buffer "DEMO")))
 
+(ert-deftest ibtypes-tests--hib-link-to-file-line ()
+  "Verify `hib-link-to-file-line'."
+  (let ((default-directory hyperb:dir))
+    (ert-info ("Find file in default-directory.")
+      (with-mock
+        (mock (actypes::link-to-file-line (expand-file-name "DEMO" hyperb:dir) "20") => t)
+        (hib-link-to-file-line "DEMO" "20")))
+    (ert-info ("Find elisp file in load-path.")
+      (with-mock
+        (mock (actypes::link-to-file-line (locate-library "simple.el") "20") => t)
+        (hib-link-to-file-line "simple.el" "20"))))
+  (let* ((default-directory (make-temp-file "hypb" t))
+         (simple "simple.el"))
+    (unwind-protect
+        (ert-info ("Prefer elisp file in default-directory before load-path.")
+          (with-temp-file simple)
+          (should (file-exists-p "simple.el"))
+          (with-mock
+            (mock (actypes::link-to-file-line (expand-file-name "simple.el" default-directory) "20") => t)
+            (hib-link-to-file-line "simple.el" "20")))
+      (hy-delete-file-and-buffer simple)
+      (hy-delete-dir-and-buffer default-directory))))
+
 (ert-deftest ibtypes::pathname-load-path-line-column-test ()
   "Pathname with line and position specification."
   (with-temp-buffer
@@ -337,6 +360,15 @@
     (should-not (ibtypes::ripgrep-msg))))
 
 ;; grep-msg
+(ert-deftest ibtypes-tests--grep-msg ()
+  "Verify `grep-msg' calls `hib-link-to-file-line' with grep patterns file name."
+  ;; Regular grep-msg case.
+  (with-temp-buffer
+    (insert "filename:20: line\n")
+    (goto-line 1)
+    (mocklet (((hib-link-to-file-line "filename" "20") => t))
+      (should (eq (hattr:get (hbut:at-p) 'actype) 'hib-link-to-file-line))
+      (should (ibtypes::grep-msg)))))
 
 ;; debugger-source
 
