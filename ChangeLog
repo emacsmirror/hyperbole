@@ -1,5 +1,17 @@
 2026-03-21  Bob Weiner  <rsw@gnu.org>
 
+* hypb.el (hypb:grep-has-pcre-p, hypb:ripgrep-has-pcre-p): Add.
+  hywiki.el (hywiki-consult-backlink): Add and use call
+    above functions.
+            (hywiki-word-grep): Call above function instead of
+    obsolete 'hywiki-word-consult-grep'.
+            (hywiki-word-consult-grep): Remove. Replaced by backlink
+    function.
+  hui-mini.el (hui:menu-hywiki):
+  hui-menu.el (hui-menu-hywiki): Add Backlinks menu item and remove
+   WikiWordConsult / HyWiki-Word-Consult menu items since Backlinks
+   replaces them.
+
 * test/hywiki-tests.el (hywiki-tests--referent-test): Remove these
     lines for testing the cache every time this is called.  Test
     that in a single test instead.

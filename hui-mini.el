@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    15-Oct-91 at 20:13:17
-;; Last-Mod:     19-Feb-26 at 22:59:55 by Bob Weiner
+;; Last-Mod:     22-Mar-26 at 01:24:46 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1054,6 +1054,9 @@ support underlined faces as well."
 	 '("HyWiki>")
 	 '("Act"            hywiki-word-activate
 	   "Create and display page for HyWikiWord at point or when none, emulate a press of a Smart Key.")
+	 (when (fboundp 'consult-grep) ;; allow for autoloading
+	   '("BacklinkTo"    hywiki-consult-backlink
+	     "Use Consult to select a backlink (reference) to a prompted for HyWikiWord."))
 	 '("Create"         hywiki-word-create-and-display
 	    "Create and display a new or existing HyWikiWord referent, prompting with any existing referent names.")
 	 '("DiredHyWiki"    hywiki-directory-edit
@@ -1064,7 +1067,7 @@ support underlined faces as well."
 	   "Prompt with completion for and display any kind of HyWikiWord referent.")
 	 (when (fboundp 'consult-grep) ;; allow for autoloading
 	   '("GrepConsult"    hywiki-consult-grep
-	     "Grep over HyWiki pages with interactive consult-grep."))
+	     "Grep over HyWiki pages with interactive `consult-grep'."))
 	 '("Help"           hywiki-help
 	   "Report on a HyWikiWord's attributes or HyWikiWords in general.")
 	 '("Info"           (id-info "(hyperbole)HyWiki")
@@ -1079,10 +1082,7 @@ With a prefix arg, insert a HyWikiWord instead.")
          '("Publish"        hywiki-publish-to-html
 	   "Publish modified pages in the HyWiki to HTML; prefix arg to publish all pages.")
 	 '("TagFind"        hywiki-tags-view
-	   "Find HyWiki Org tags.")
-	 (when (fboundp 'consult-grep) ;; allow for autoloading
-	   '("WikiWordConsult" hywiki-word-consult-grep
-	     "Use `hywiki-consult-grep' to show occurrences of a prompted for HyWikiWord."))))
+	   "Find HyWiki Org tags.")))
   "Hyperbole minibuffer HyWiki menu items of the form:
 \(LABEL-STRING ACTION-SEXP DOC-STR)."
   :set  (lambda (var value)
