@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    28-Oct-94 at 10:59:44
-;; Last-Mod:     30-Nov-25 at 17:56:58 by Bob Weiner
+;; Last-Mod:     22-Mar-26 at 01:23:25 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -307,6 +307,8 @@ Return t if cutoff, else nil."
 	 ["Manual"               (id-info "(hyperbole)HyWiki") t]
 	 "----"
 	 ["Activate-HyWiki-Word" hywiki-word-activate t]
+	 (when (fboundp 'consult-grep) ;; allow for autoloading
+	   ["Backlink-To"        hywiki-consult-backlink t])
 	 ["Create-HyWiki-Word"   hywiki-word-create-and-display t]
 	 ["Dired-HyWiki-Pages"   hywiki-directory-edit t]
 	 ["Find-HyWiki-Page"     hywiki-find-page t]
@@ -327,9 +329,7 @@ Return t if cutoff, else nil."
 	 ["HyWiki-Tag-Find"      hywiki-tags-view t]
 	 ["Insert-HyWiki-Link"   hywiki-insert-link t]
 	 hui-menu-org-meta-return-options
-	 ["Publish-HyWiki"       hywiki-publish-to-html t]
-	 (when (fboundp 'consult-grep) ;; allow for autoloading
-	   ["HyWiki-Word-Consult"   hywiki-word-consult-grep t])))
+	 ["Publish-HyWiki"       hywiki-publish-to-html t]))
   "Menu items for HyWiki editing and publishing.")
 
 (defvar infodock-hyperbole-menu nil)

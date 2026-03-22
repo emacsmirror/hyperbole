@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:     16-Mar-26 at 21:18:30 by Bob Weiner
+;; Last-Mod:     22-Mar-26 at 01:34:22 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1711,6 +1711,67 @@ nil, else return \\='(page . \"<page-file-path>\")."
   (and (or at-tag-flag (hsys-org-at-tags-p))
        (or (hywiki-in-page-p) (string-prefix-p "*HyWiki Tags*" (buffer-name)))))
 
+;;;###autoload
+(defun hywiki-consult-backlink (reference)
+  "Select a HyWikiWord backlink to REFERENCE with `hywiki-consult-grep'.
+REFERENCE should be a string of \"WikiWord\" and optional \"#suffix\" which
+is ignored.  Unless `grep' or `rg' have Perl-style pcre2 support, matches
+will include filenames that include the WikiWord."
+  (interactive (list (hywiki-word-read "Select a WikiWord backlink for: "
+				       (hywiki-word-at-point))))
+  ;; Ensure any #suffix is stripped
+  (let ((wikiword (and (stringp reference) (not (string-empty-p reference))
+                       (hywiki-word-strip-suffix reference))))
+    (unless wikiword
+      (user-error "(hywiki-consult-backlink): Invalid HyWikiWord: '%s'; must be capitalized, all alpha" wikiword))
+    (require 'consult)
+    (let* ((ignored-exts "kotl|org|otl|html|md")
+           (ripgrep-pcre (hypb:ripgrep-has-pcre-p))
+           (grep-pcre (hypb:grep-has-pcre-p))
+           (consult-ripgrep-args consult-ripgrep-args)
+           (consult-grep-args consult-grep-args)
+           (regexp (format "\\b%s\\b\\(?!\\.\\(%s\\)\\)" wikiword ignored-exts)))
+      (cond (ripgrep-pcre
+	     (setq consult-ripgrep-args
+	           (if (listp consult-ripgrep-args)
+                       (append consult-ripgrep-args (list "-P"))
+                     (concat consult-ripgrep-args " -P"))))
+            (grep-pcre
+	     (setq consult-grep-args
+	           (if (listp consult-grep-args)
+                       (append consult-grep-args (list "-P"))
+                     (concat consult-grep-args " -P"))))
+            ;; No pcre support, so use a simpler grep expression that doesn't
+            ;; filter out WikiWords embedded within filenames
+            (t (setq regexp (format "\\b%s\\b" wikiword))))
+      (minibuffer-with-setup-hook
+          (lambda ()
+            ;; Disable the Org cache which can cause an 'Invalid search bound' error
+            (setq-local org-element-use-cache nil)
+            (setq-local org-fold-core-style 'overlays))
+        (hywiki-consult-grep regexp nil nil
+                             (format "HyWiki Backlinks [%s]: " wikiword))))))
+
+;;;###autoload
+(defun hywiki-consult-grep (&optional regexp max-matches path-list prompt)
+  "Interactively search HyWiki pages with a consult package grep command.
+Search for optional REGEXP up to MAX-MATCHES in PATH-LIST or `hywiki-directory'.
+
+Use ripgrep (rg) if found, otherwise, plain grep.  Initialize search with
+optional REGEXP and interactively prompt for changes.  Limit matches
+per file to the absolute value of MAX-MATCHES, if given and not 0.  If
+0, match to headlines only (lines that start with a '^[*#]+[ \t]+' regexp).
+With optional PROMPT string, use this as the first part of the grep prompt;
+omit any trailing colon and space in the prompt."
+  (interactive "i\nP")
+  (let* ((grep-includes "--include *.org")
+	 (ripgrep-globs "--glob *.org"))
+    (hsys-consult-grep grep-includes ripgrep-globs
+		       regexp max-matches (or path-list (list hywiki-directory))
+		       (or prompt (if (eq max-matches 0)
+				      "Grep HyWiki dir headlines"
+				    "Grep HyWiki dir")))))
+
 (defun hywiki-consult-page-and-headline (&optional prompt initial)
   "Return a string of HyWiki file and headline selected by `consult-grep' or nil."
   (interactive)
@@ -1741,26 +1802,6 @@ nil, else return \\='(page . \"<page-file-path>\")."
                     :lookup #'consult--lookup-member
                     :category 'consult-grep)))
     selected))
-
-;;;###autoload
-(defun hywiki-consult-grep (&optional regexp max-matches path-list prompt)
-  "Interactively search HyWiki pages with a consult package grep command.
-Search for optional REGEXP up to MAX-MATCHES in PATH-LIST or `hywiki-directory'.
-
-Use ripgrep (rg) if found, otherwise, plain grep.  Initialize search with
-optional REGEXP and interactively prompt for changes.  Limit matches
-per file to the absolute value of MAX-MATCHES, if given and not 0.  If
-0, match to headlines only (lines that start with a '^[*#]+[ \t]+' regexp).
-With optional PROMPT string, use this as the first part of the grep prompt;
-omit any trailing colon and space in the prompt."
-  (interactive "i\nP")
-  (let* ((grep-includes "--include *.org")
-	 (ripgrep-globs "--glob *.org"))
-    (hsys-consult-grep grep-includes ripgrep-globs
-		       regexp max-matches (or path-list (list hywiki-directory))
-		       (or prompt (if (eq max-matches 0)
-				      "Grep HyWiki dir headlines"
-				    "Grep HyWiki dir")))))
 
 (defun hywiki-references-to-org-links ()
   "Convert all highlighted HyWikiWords in current buffer to Org links.
@@ -4089,7 +4130,7 @@ call `hywiki-non-hook-context-p' for that."
   "Grep for occurrences of WIKIWORD with `consult-grep' or normal-grep'.
 Search across `hywiki-directory'."
   (if (hsys-consult-active-p) ;; allow for autoloading
-      (hywiki-word-consult-grep wikiword)
+      (hywiki-consult-backlink wikiword)
     (grep (string-join (list grep-command (format "'%s'" wikiword)
 			     (concat (file-name-as-directory hywiki-directory)
 				     "*" hywiki-file-suffix))

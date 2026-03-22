@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     6-Oct-91 at 03:42:38
-;; Last-Mod:      7-Mar-26 at 16:40:23 by Bob Weiner
+;; Last-Mod:     22-Mar-26 at 01:29:41 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -668,6 +668,10 @@ Assist Key on any log line will display its committed changes."
   (interactive "sGrep git commits containing: ")
   (compile (format "git log -G'%s' --line-prefix='commit ' --oneline" regexp)))
 
+(defun hypb:grep-has-pcre-p ()
+  "Return t if grep supports the -P option, pcre Perl-style regexps."
+  (eq 0 (shell-command "echo '' | grep -P '' > /dev/null 2>&1")))
+
 (defun hypb:help-buf-name (&optional suffix)
   "Return a Hyperbole help buffer name for current buffer.
 With optional SUFFIX string, uses it rather than buffer name."
@@ -675,6 +679,7 @@ With optional SUFFIX string, uses it rather than buffer name."
     (if (string-match (regexp-quote hypb:help-buf-prefix) bn)
 	(buffer-name (generate-new-buffer bn))
       (concat hypb:help-buf-prefix bn "*"))))
+
 
 ;;;###autoload
 (defun hypb:helm-apropos (&optional symbol-name)
@@ -1092,6 +1097,11 @@ Removes any trailing newline at the end of the output."
       (set-buffer-modified-p nil)
       (kill-buffer buf))
     output))
+
+(defun hypb:ripgrep-has-pcre-p ()
+  "Return t if rg supports pcre Perl-style regexps."
+  (when (executable-find "rg")
+    (eq 0 (shell-command "rg --pcre2-version > /dev/null 2>&1"))))
 
 ;;;###autoload
 (defalias 'hypb:rgrep 'hui-select-rgrep)
