@@ -7,7 +7,7 @@
 @c Author:       Bob Weiner
 @c
 @c Orig-Date:     6-Nov-91 at 11:18:03
-@c Last-Mod:     15-Mar-26 at 01:56:19 by Bob Weiner
+@c Last-Mod:     22-Mar-26 at 18:10:11 by Bob Weiner
 
 @c %**start of header (This is for running Texinfo on a region.)
 @setfilename hyperbole.info
@@ -30,7 +30,7 @@
 @set txicodequoteundirected
 @set txicodequotebacktick
 
-@set UPDATED March 15, 2026
+@set UPDATED March 22, 2026
 @set UPDATED-MONTH March 2026
 @set EDITION 9.0.2pre
 @set VERSION 9.0.2pre
@@ -171,7 +171,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.</P>
 
 <PRE>
 Edition 9.0.2pre
-Printed March 15, 2026.
+Printed March 22, 2026.
 
   Published by the Free Software Foundation, Inc.
   Author:    Bob Weiner
@@ -213,7 +213,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 @example
 Edition 9.0.2pre
-March 15, 2026 @c AUTO-REPLACE-ON-SAVE
+March 22, 2026 @c AUTO-REPLACE-ON-SAVE
 
 
   Published by the Free Software Foundation, Inc.
@@ -2662,6 +2662,20 @@ Jump to a line associated with a ripgrep (rg) line numbered msg.
 Ripgrep outputs each pathname once, followed by all matching lines in
 that pathname.  Messages are recognized in any buffer (other than a
 helm completion buffer).
+
+@findex ibtypes grep-single-file
+@cindex grep
+@cindex match lines
+@cindex command history
+@findex hpath:get-grep-filename
+@vindex command-history
+@anchor{grep-single-file}
+@item grep-single-file
+Jump to the source line from a single file, line-numbered grep msg.
+Such grep msgs start with the line number followed by a colon.  The
+buffer may contain the file searched prior to any such line or it may
+not, e.g. @bkbd{M-!} in which case @code{hpath:get-grep-filename} will
+extract a best guess from the @code{command-history}.
 
 @findex ibtypes ipython-stack-frame
 @cindex ipython

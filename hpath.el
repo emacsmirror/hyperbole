@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     1-Nov-91 at 00:44:23
-;; Last-Mod:     22-Mar-26 at 13:41:04 by Bob Weiner
+;; Last-Mod:     22-Mar-26 at 18:26:12 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1336,7 +1336,7 @@ ${variable} per path."
     paths))
 
 (defun hpath:prepend-shell-directory (&optional filename)
-  "Prepend subdir to a filename in an \\='ls'-file listing.
+  "Prepend subdir to an optional FILENAME in an \\='ls'-file listing.
 When in a shell buffer and on a filename result of an \\='ls *' or
 recursive \\='ls -R' or \\='dir' command, prepend the subdir to the
 filename at point, or optional FILENAME, when needed and return
@@ -1413,6 +1413,53 @@ If PATH is absolute, return it unchanged."
 		(setq path (format "${%s}/%s" variable path)))
 	      (setq auto-variable-alist nil)))))
       (concat path compression-suffix))))
+
+(defun hpath:get-grep-filename ()
+  "Return a list of (filename-with-path line-number) for grep line without file.
+If grep is run over a single file, it omits the filename from each line
+unless the -H option is given.
+
+This function extracts both the filename searched and the line number
+selected.  For the filename, first it checks if the grep command precedes
+the numbered lines.  If not, it finds the most recent grep command in the
+`command-history' and uses the last argument if it is an existing filename."
+  (let ((grep-process (apply #'derived-mode-p '(grep-mode shell-mode)))
+	;; for shell command output buffers
+	(grep-output  (and (not buffer-file-name) (not (get-buffer-process (current-buffer))))))
+    (when (or grep-process grep-output)
+      (save-excursion
+	(forward-line 0)
+	(when (looking-at "\\([1-9][0-9]*\\):.+")
+	  (let ((line-num (match-string 1))
+		cmd
+		file)
+	    ;; Skip over lines starting with line numbers
+	    (while (re-search-backward "^[1-9][0-9]*:.+" nil t))
+	    (cond (grep-process
+		   ;; If there is a prior line, move to its end
+		   (unless (or (= (point) (point-min)) (not (bolp)))
+		     (skip-chars-backward "\n\r\t \"'`")
+		     ;; If last item can be expanded as a filename, return a
+		     ;; list of the filename and the line number from the
+		     ;; original line
+		     (setq file (thing-at-point 'existing-filename))
+		     (when file
+		       (list file line-num))))
+		  (grep-output
+		   ;; Command line is not in output buffer; have to get
+		   ;; it from the command history
+		   (setq cmd (cadr (seq-find (lambda (item)
+					       (when (eq (car item) 'eval-expression)
+						 (setq item (cadr item)))
+					       (memq (car item) '(grep rgrep zrgrep hui-select-rgrep hypb:rgrep shell-command async-shell-command)))
+					     command-history)))
+		   (when cmd
+		     (setq file (expand-file-name
+				 (string-trim (car (last (split-string cmd)))
+					      "[\"'`]" "[\"'`]")))
+		     (when (and (file-readable-p file)
+				(not (file-directory-p file)))
+		       (list file line-num)))))))))))
 
 (defun hpath:file-line-and-column (path-line-and-col)
   "Return list of parts from PATH-LINE-AND-COL string of format path:line:col.
