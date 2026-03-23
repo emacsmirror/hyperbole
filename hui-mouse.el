@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    04-Feb-89
-;; Last-Mod:      1-Jan-26 at 18:18:24 by Mats Lidell
+;; Last-Mod:     23-Mar-26 at 18:49:48 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -429,6 +429,11 @@ The button's attributes are stored in the symbol, `hbut:current'.")
     ((eq major-mode 'flymake-diagnostics-buffer-mode)
      . ((flymake-goto-diagnostic (point)) . (flymake-show-diagnostic (point) t)))
     ;;
+    ;; If in the CPU and memory profile report mode, jump to or expand/contract
+    ;; the entry at point.
+    ((eq major-mode 'profiler-report-mode)
+     . ((smart-profiler-report) . (smart-profiler-report-assist)))
+    ;;
     ;; Rdb-mode supports direct selection and viewing of in-memory relational
     ;; databases.  Rdb-mode is available as a part of InfoDock.
     ;; It is not included with Hyperbole.
@@ -695,7 +700,7 @@ and has moved the cursor there.
 
 If key is pressed:
  (1) on the first column of an entry, the selected buffer is marked for
-     display; 
+     display;
  (2) on the second column of an entry, the selected buffer is marked to be
      saved;
  (3) anywhere else within an entry line, all saves and deletes are done, and
@@ -724,7 +729,7 @@ buffer and has moved the cursor there.
 
 If assist key is pressed:
  (1) on the first or second column of an entry, the selected buffer is unmarked
-     for display and for saving or deletion; 
+     for display and for saving or deletion;
  (2) anywhere else within an entry line, the selected buffer is marked for
      deletion;
  (3) on or after the last line in the buffer, all display, save, and delete
@@ -792,7 +797,7 @@ appropriate buffer and has moved the cursor there.
 
 If assist key is pressed:
  (1) on the first or second column of an entry, the selected buffer is unmarked
-     for display or deletion; 
+     for display or deletion;
  (2) anywhere else within an entry line, the selected buffer is marked for
      deletion;
  (3) on the first or last line in the buffer, all display, save, and delete
@@ -1412,7 +1417,7 @@ If key is pressed within:
      the next undeleted message is displayed;
  (2) a msg buffer within the first line of an Info cross reference, the
      reference is followed;
- (3) anywhere else in a msg buffer, the window is scrolled up a windowful; 
+ (3) anywhere else in a msg buffer, the window is scrolled up a windowful;
  (4) a msg summary buffer on a header entry, the message corresponding to
      the header is displayed in the msg window;
  (5) a msg summary buffer, on or after the last line, the messages marked
@@ -1883,7 +1888,7 @@ either t or `:buttons':
   9. With point on any #+BEGIN_SRC, #+END_SRC, #+RESULTS, #+begin_example
      or #+end_example header, execute the code block via the Org mode
      standard binding of {\\`C-c' \\`C-c'}, (`org-ctrl-c-ctrl-c').
-  
+
  10. With point on an Org mode heading, cycle the view of the subtree at
      point.
 
@@ -2194,6 +2199,52 @@ mouse-action to action property."
     (if (functionp action)
 	(describe-function action)
       (hkey-help t))))
+
+;;; ************************************************************************
+;;; smart-profiler-report functions
+;;; ************************************************************************
+
+(defun smart-profiler-report ()
+  "Use a single key or mouse key to jump to call tree items with links.
+
+Invoked via a key press when in ``profiler-report-mode'.  It assumes that its
+caller has already checked that the key was pressed in an appropriate buffer
+and has moved the cursor there.
+
+If key is pressed:
+ (1) on the text of a linked call tree item, jumps to the definition of the item;
+ (2) on or after the last line in the buffer, quits from the profiler report."
+  (interactive)
+  (cond
+   ;; If on last line, quit from mode
+   ((last-line-p)
+    (quit-window))
+   ;; If on the text of an entry, jump to its definition if is a link
+   ((text-property-any (point) (1+ (point)) 'face 'link)
+    (let* ((curr-buffer)
+	   (find-function-after-hook '((lambda ()
+					 (setq curr-buffer (current-buffer))))))
+      (hpath:display-buffer (save-window-excursion
+			      (profiler-report-find-entry)
+			      curr-buffer)))
+    t)))
+
+(defun smart-profiler-report-assist ()
+  "Use a single assist key or mouse assist key to toggle profiler call trees.
+
+Invoked via an assist key press when in `profiler-report-mode'.  It assumes
+that its caller has already checked that the assist key was pressed in an
+appropriate buffer and has moved the cursor there.
+
+If assist key is pressed:
+ (1) on an item line, toggles exposure of the item's call tree.
+ (2) on or after the last line in the buffer, quits from the profiler report."
+  (interactive)
+   ;; If on last line, quit from mode
+   (if (last-line-p)
+       (quit-window)
+     ;; Otherwise, toggle exposing the entry's call tree
+     (profiler-report-toggle-entry t)))
 
 ;;; ************************************************************************
 ;;; smart-tar functions

@@ -1,3 +1,10 @@
+2026-03-23  Bob Weiner  <rsw@gnu.org>
+
+* hui-mouse.el (hkey-alist): Add 'profiler-report-mode' support for jumping
+    to call tree items or expanding/collapsing their call trees.
+    (smart-profiler-report, smart-profiler-report-assist): Add.
+  man/hyperbole.texi (Smart Key - Profiler Report Mode): Add doc.
+
 2026-03-22  Mats Lidell  <matsl@gnu.org>
 
 * test/hibtypes-tests.el (ibtypes-tests--grep-msg):
