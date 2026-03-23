@@ -7,7 +7,7 @@
 @c Author:       Bob Weiner
 @c
 @c Orig-Date:     6-Nov-91 at 11:18:03
-@c Last-Mod:     15-Mar-26 at 01:56:19 by Bob Weiner
+@c Last-Mod:     22-Mar-26 at 23:39:23 by Bob Weiner
 
 @c %**start of header (This is for running Texinfo on a region.)
 @setfilename hyperbole.info
@@ -30,7 +30,7 @@
 @set txicodequoteundirected
 @set txicodequotebacktick
 
-@set UPDATED March 15, 2026
+@set UPDATED March 22, 2026
 @set UPDATED-MONTH March 2026
 @set EDITION 9.0.2pre
 @set VERSION 9.0.2pre
@@ -171,7 +171,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.</P>
 
 <PRE>
 Edition 9.0.2pre
-Printed March 15, 2026.
+Printed March 22, 2026.
 
   Published by the Free Software Foundation, Inc.
   Author:    Bob Weiner
@@ -213,7 +213,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 @example
 Edition 9.0.2pre
-March 15, 2026 @c AUTO-REPLACE-ON-SAVE
+March 22, 2026 @c AUTO-REPLACE-ON-SAVE
 
 
   Published by the Free Software Foundation, Inc.
@@ -2663,6 +2663,20 @@ Ripgrep outputs each pathname once, followed by all matching lines in
 that pathname.  Messages are recognized in any buffer (other than a
 helm completion buffer).
 
+@findex ibtypes grep-single-file
+@cindex grep
+@cindex match lines
+@cindex command history
+@findex hpath:get-grep-filename
+@vindex command-history
+@anchor{grep-single-file}
+@item grep-single-file
+Jump to the source line from a single file, line-numbered grep msg.
+Such grep msgs start with the line number followed by a colon.  The
+buffer may contain the file searched prior to any such line or it may
+not, e.g. @bkbd{M-!} in which case @code{hpath:get-grep-filename} will
+extract a best guess from the @code{command-history}.
+
 @findex ibtypes ipython-stack-frame
 @cindex ipython
 @cindex stack frame
@@ -4603,24 +4617,10 @@ Action Key does the right thing in this context.
 Once Hyperbole has been loaded and activated, HyWikiWords (with or
 without delimiters) are automatically highlighted and active based
 on the setting of @code{hywiki-mode}.  Set it with @bkbd{C-h h h m}
-ModeToggle into one of these three states:
+ModeSet/.  @xref{ModeSet/}, for the three settings.
 
-@table @kbd
-@item All-Editable-Buffers
-This is the default setting.  Highlight HyWikiWord references within
-HyWiki page buffers only.  The @code{hywiki-mode} variable is set to
-@samp{:pages}.
+Modeinto one of these three states:
 
-@vindex hywiki-exclude-major-modes
-@item HyWiki-Pages-Only
-Highlight HyWikiWord references within all editable buffers except
-those with major modes in @code{hywiki-exclude-major-modes}.  The
-@code{hywiki-mode} variable is set to @samp{:all}.
-
-@item Nowhere
-Disable highlighting HyWikiWord references everywhere.  The
-@code{hywiki-mode} variable is set to @samp{nil}.
-@end table
 
 @cindex toggle hywiki-mode
 @noindent
@@ -4725,11 +4725,11 @@ It looks like this:
 
 @smallexample
 @noindent
-HyWiki>  Act Create DiredHyWiki EditPage FindReferent GrepConsult Help Info Link ModeToggle Org-M-RET/ Publish TagFind WikiWordConsult
+HyWiki>  Act BacklinkConsult Create DiredHyWiki EditPage FindReferent GrepConsult Help Info Link ModeSet/ Org-M-RET/ Publish TagFind
 @end smallexample
 
 @noindent
-The GrepConsult and WikiWordConsult items appear only when the Consult
+The BacklinkConsult and GrepConsult and items appear only when the Consult
 package is installed prior to loading Hyperbole.  These commands are
 especially useful as they allow for fast line-level searching across
 many files with interactive search pattern narrowing.
@@ -4743,6 +4743,12 @@ Below are descriptions of each menu item.
 @cindex HyWiki activate link 
 @item Act
 Activate HyWikiWord link at point.
+
+@cindex HyWikiWord interactive backlink grep
+@findex hywiki-consult-backlink
+@item BacklinkConsult
+Use @code{hywiki-consult-backlink} to prompt for a HyWikiWord and then
+consult grep over its HyWiki backlink references, selecting one.
 
 @cindex HyWiki create a page
 @item Create
@@ -4792,11 +4798,27 @@ Display Hyperbole manual section on HyWiki.
 Prompt for and add a link at point to a HyWiki page.
 
 @findex hywiki-mode
-@cindex HyWiki mode
+@cindex hywiki-mode
 @cindex HyWikiWords outside hywiki-directory
-@item ModeToggle
-Toggle global minor mode @code{hywiki-mode} that enables HyWikiWord hyperlinks
-in buffers outside of @code{hywiki-directory}.
+@anchor{ModeSet/}
+@item ModeSet/
+Select from three states for the global minor mode, @code{hywiki-mode}.
+@table @kbd
+@item All-Editable-Buffers
+This is the default setting.  Highlight HyWikiWord references within
+HyWiki page buffers only.  The @code{hywiki-mode} variable is set to
+@samp{:pages}.
+
+@vindex hywiki-exclude-major-modes
+@item HyWiki-Pages-Only
+Highlight HyWikiWord references within all editable buffers except
+those with major modes in @code{hywiki-exclude-major-modes}.  The
+@code{hywiki-mode} variable is set to @samp{:all}.
+
+@item Nowhere
+Disable highlighting HyWikiWord references everywhere.  The
+@code{hywiki-mode} variable is set to @samp{nil}.
+@end table
 
 @kindex C-h h h o
 @kindex HyWiki, C-h h h o
@@ -4825,12 +4847,6 @@ Publish modified pages in the HyWiki to HTML; prefix arg to publish all pages.
 @cindex search, HyWiki tag
 @item TagFind
 Find a matching Org tag across all HyWiki pages.
-
-@cindex HyWikiWord interactive grep
-@findex hywiki-consult-grep
-@item WikiWordConsult
-Use @code{hywiki-consult-grep} to prompt for a HyWikiWord and then
-consult grep for and select an occurrence within the HyWiki.
 @end table
 
 

@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    19-Sep-91 at 20:45:31
-;; Last-Mod:     22-Mar-26 at 14:08:04 by Bob Weiner
+;; Last-Mod:     22-Mar-26 at 18:18:45 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1074,6 +1074,22 @@ than a helm completion buffer)."
 	    (ibut:label-set (concat file ":" line-num))
 	    (hact 'hib-link-to-file-line file line-num)))))))
 
+(defib grep-single-file ()
+  "Jump to the source line from a single file, line-numbered grep msg.
+Such grep msgs start with the line number followed by a colon.  The buffer
+may contain the file searched prior to any such line or it may not,
+e.g. {M-!} in which case `hpath:get-grep-filename' will extract a best
+guess from the `command-history'.
+
+Avoid this situation and force prefixing each line with the filename by
+including the -H option."
+  (let ((file-and-line (hpath:get-grep-filename)))
+    (when file-and-line
+      (ibut:label-set (concat (file-name-nondirectory (nth 0 file-and-line))
+			      ":" (nth 1 file-and-line))
+                      (line-beginning-position) (line-end-position))
+      (apply #'hact 'hib-link-to-file-line file-and-line))))
+
 (defib ripgrep-msg ()
   "Jump to the line associated with a ripgrep (rg) line numbered msg.
 Ripgrep outputs each pathname once followed by all matching lines
@@ -1125,11 +1141,12 @@ buffer)."
                (but-label (concat buffer-name ":P" pos)))
 	  (when (buffer-live-p (get-buffer buffer-name))
             (setq pos (string-to-number pos))
-            (ibut:label-set but-label)
+            (ibut:label-set but-label
+                            (line-beginning-position) (line-end-position))
             (hact 'link-to-buffer-tmp buffer-name pos)))))))
 
 (defib grep-msg ()
-  "Jump to the line associated with line numbered grep or compilation error msgs.
+  "Jump to the source line from a line-numbered grep or compilation msg.
 Messages are recognized in any buffer (other than a helm completion
 buffer) except for grep -A<num> context lines which are matched only
 in grep and shell buffers."
@@ -1180,7 +1197,8 @@ in grep and shell buffers."
                   (looking-at "\\([^ \t\n\r:\"'`]+\\)-\\([1-9][0-9]*\\)-")))
         (let* ((file (match-string-no-properties 1))
                (line-num  (or (match-string-no-properties 2) "1")))
-	  (ibut:label-set (concat file ":" line-num))
+	  (ibut:label-set (concat file ":" line-num)
+                          (line-beginning-position) (line-end-position))
 	  (hact 'hib-link-to-file-line file line-num))))))
 
 ;;; ========================================================================
@@ -1196,7 +1214,8 @@ in grep and shell buffers."
            (line-num (match-string-no-properties 3))
            (but-label (concat file ":" line-num)))
       (setq line-num (string-to-number line-num))
-      (ibut:label-set but-label (match-beginning 2) (match-end 2))
+      (ibut:label-set but-label
+                      (line-beginning-position) (line-end-position))
       (hact 'link-to-file-line file line-num))))
 
 (defib debugger-source ()
@@ -1227,7 +1246,8 @@ xdb.  Such lines are recognized in any buffer."
 
         (setq but-label (concat file ":" line-num)
               line-num (string-to-number line-num))
-        (ibut:label-set but-label)
+        (ibut:label-set but-label
+                        (line-beginning-position) (line-end-position))
         (hact 'link-to-file-line file line-num)))
 
      ;; GDB or WDB
@@ -1249,7 +1269,8 @@ xdb.  Such lines are recognized in any buffer."
         ;; guess.
         (when gdb-last-file
           (setq file (expand-file-name file (file-name-directory gdb-last-file))))
-        (ibut:label-set but-label)
+        (ibut:label-set but-label
+                        (line-beginning-position) (line-end-position))
         (hact 'link-to-file-line file line-num)))
 
      ;; XEmacs assertion failure
@@ -1258,7 +1279,8 @@ xdb.  Such lines are recognized in any buffer."
              (line-num (match-string-no-properties 2))
              (but-label (concat file ":" line-num)))
         (setq line-num (string-to-number line-num))
-        (ibut:label-set but-label)
+        (ibut:label-set but-label
+                        (line-beginning-position) (line-end-position))
         (hact 'link-to-file-line file line-num)))
 
      ;; New DBX
@@ -1267,7 +1289,8 @@ xdb.  Such lines are recognized in any buffer."
              (line-num (match-string-no-properties 1))
              (but-label (concat file ":" line-num)))
         (setq line-num (string-to-number line-num))
-        (ibut:label-set but-label)
+        (ibut:label-set but-label
+                        (line-beginning-position) (line-end-position))
         (hact 'link-to-file-line file line-num)))
 
      ;; Old DBX and HP-UX xdb
@@ -1277,7 +1300,8 @@ xdb.  Such lines are recognized in any buffer."
              (line-num (match-string-no-properties 2))
              (but-label (concat file ":" line-num)))
         (setq line-num (string-to-number line-num))
-        (ibut:label-set but-label)
+        (ibut:label-set but-label
+                        (line-beginning-position) (line-end-position))
         (hact 'link-to-file-line file line-num))))))
 
 ;;; ========================================================================
@@ -1804,7 +1828,7 @@ not yet existing HyWikiWords."
 ;;; Follows Org mode links and radio targets and cycles Org heading views
 ;;; ========================================================================
 
-;; See `smart-org' in "hui-mouse.el"; this is higher priority than all ibtypes.
+;;; See `smart-org' in "hui-mouse.el"; this is higher priority than all ibtypes.
 
 ;; If you want to to disable ALL Hyperbole support within Org major
 ;; and minor modes, set the custom option `hsys-org-enable-smart-keys' to nil.

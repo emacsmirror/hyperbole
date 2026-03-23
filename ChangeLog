@@ -1,5 +1,21 @@
 2026-03-22  Bob Weiner  <rsw@gnu.org>
 
+* man/hyperbole.texi (HyWiki Menu): Move ModeSet/ menu description here.
+
+* hui-menu.el (hui-menu-hywiki): Change item from 'Backlink-To' to
+    'Backlink-Consult'.
+  hui-mini.el (hui:menu-hywiki): Change item from 'BacklinkTo' to
+    'BacklinkConsult'.
+  man/hyperbole.texi (HyWiki Menu): Add BacklinkConsult entry.
+
+* hibtypes.el (grep-single-file): Add to handle grep -n on a single file
+    where the lines do not show the filename.
+  man/hyperbole.texi (Implicit Button Types): Add 'grep-single-file'.
+  hpath.el (hpath:get-grep-filename): Add, used by 'grep-single-file'.
+
+* hibtypes.el (hib-python-traceback, debugger-source, grep-msg,
+               hyrolo-stuck-msg): Flash whole line as the button label.
+
 * hibtypes.el (hib-link-to-file-line): Fix that a filename both in the current
     dir and in the 'load-path' variable is expanded into a 'load-path' dir
     first rather than the current directory, which should be preferred.
