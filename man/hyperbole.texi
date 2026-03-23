@@ -7,7 +7,7 @@
 @c Author:       Bob Weiner
 @c
 @c Orig-Date:     6-Nov-91 at 11:18:03
-@c Last-Mod:     22-Mar-26 at 23:39:23 by Bob Weiner
+@c Last-Mod:     23-Mar-26 at 19:00:37 by Bob Weiner
 
 @c %**start of header (This is for running Texinfo on a region.)
 @setfilename hyperbole.info
@@ -30,7 +30,7 @@
 @set txicodequoteundirected
 @set txicodequotebacktick
 
-@set UPDATED March 22, 2026
+@set UPDATED March 23, 2026
 @set UPDATED-MONTH March 2026
 @set EDITION 9.0.2pre
 @set VERSION 9.0.2pre
@@ -171,7 +171,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.</P>
 
 <PRE>
 Edition 9.0.2pre
-Printed March 22, 2026.
+Printed March 23, 2026.
 
   Published by the Free Software Foundation, Inc.
   Author:    Bob Weiner
@@ -213,7 +213,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 @example
 Edition 9.0.2pre
-March 22, 2026 @c AUTO-REPLACE-ON-SAVE
+March 23, 2026 @c AUTO-REPLACE-ON-SAVE
 
 
   Published by the Free Software Foundation, Inc.
@@ -491,14 +491,16 @@ Smart Keyboard Keys
 * Smart Key - Smart Scrolling::
 * Smart Key - Smart Menus::
 * Smart Key - Dired Mode::
+* Smart Key - Magit Mode::
+* Smart Key - Delimited Things::
 * Smart Key - Hyperbole Buttons::
 * Smart Key - View Mode::
 * Smart Key - Helm Mode::
 * Smart Key - ERT Results Mode::
-* Smart Key - Delimited Things::
 * Smart Key - Occurrence Matches::
 * Smart Key - The Koutliner::
 * Smart Key - Flymake Mode::
+* Smart Key - Profiler Report Mode::
 * Smart Key - RDB Mode::
 * Smart Key - Help Buffers::
 * Smart Key - Custom Mode::
@@ -527,7 +529,6 @@ Smart Keyboard Keys
 * Smart Key - HyRolo Match Buffers::
 * Smart Key - Image Thumbnails::
 * Smart Key - Gomoku Game::
-* Smart Key - Magit Mode::
 * Smart Key - The OO-Browser::
 * Smart Key - Todotxt Mode::
 * Smart Key - Default Context::
@@ -10554,14 +10555,16 @@ If dragged from an Emacs window to outside of Emacs:
 * Smart Key - Smart Scrolling::
 * Smart Key - Smart Menus::
 * Smart Key - Dired Mode::
+* Smart Key - Magit Mode::
+* Smart Key - Delimited Things::
 * Smart Key - Hyperbole Buttons::
 * Smart Key - View Mode::
 * Smart Key - Helm Mode::
 * Smart Key - ERT Results Mode::
-* Smart Key - Delimited Things::
 * Smart Key - Occurrence Matches::
 * Smart Key - The Koutliner::
 * Smart Key - Flymake Mode::
+* Smart Key - Profiler Report Mode::
 * Smart Key - RDB Mode::
 * Smart Key - Help Buffers::
 * Smart Key - Custom Mode::
@@ -10590,7 +10593,6 @@ If dragged from an Emacs window to outside of Emacs:
 * Smart Key - HyRolo Match Buffers::
 * Smart Key - Image Thumbnails::
 * Smart Key - Gomoku Game::
-* Smart Key - Magit Mode::
 * Smart Key - The OO-Browser::
 * Smart Key - Todotxt Mode::
 * Smart Key - Default Context::
@@ -10892,7 +10894,7 @@ If the Smart Menu package (part of InfoDock) has been loaded and
 @end group
 @end format
 
-@node Smart Key - Dired Mode, Smart Key - Hyperbole Buttons, Smart Key - Smart Menus, Smart Keyboard Keys
+@node Smart Key - Dired Mode, Smart Key - Magit Mode, Smart Key - Smart Menus, Smart Keyboard Keys
 @subsection Smart Key - Dired Mode
 @cindex click, dired
 @cindex drag, dired
@@ -10929,7 +10931,7 @@ If pressed within a dired-mode (directory editor) buffer:
 @end group
 @end format
 
-@node Smart Key - Magit Mode, Smart Key - The OO-Browser, Smart Key - Gomoku Game, Smart Keyboard Keys
+@node Smart Key - Magit Mode, Smart Key - Delimited Things, Smart Key - Dired Mode, Smart Keyboard Keys
 @subsection Smart Key - Magit Mode
 @cindex git
 @cindex magit
@@ -10960,7 +10962,7 @@ If pressed within a Magit buffer and not on a button:
 @end group
 @end format
 
-@node Smart Key - Delimited Things, Smart Key - Occurrence Matches, Smart Key - ERT Results Mode, Smart Keyboard Keys
+@node Smart Key - Delimited Things, Smart Key - Hyperbole Buttons, Smart Key - Magit Mode, Smart Keyboard Keys
 @subsection Smart Key - Delimited Things
 
 @cindex thing
@@ -10987,7 +10989,7 @@ the thing.
 @end group
 @end format
 
-@node Smart Key - Hyperbole Buttons, Smart Key - View Mode, Smart Key - Dired Mode, Smart Keyboard Keys
+@node Smart Key - Hyperbole Buttons, Smart Key - View Mode, Smart Key - Delimited Things, Smart Keyboard Keys
 @subsection Smart Key - Hyperbole Buttons
 
 @cindex click, button
@@ -11060,7 +11062,7 @@ If pressed within a buffer in helm major mode:
 @end group
 @end format
 
-@node Smart Key - ERT Results Mode, Smart Key - Delimited Things, Smart Key - Helm Mode, Smart Keyboard Keys
+@node Smart Key - ERT Results Mode, Smart Key - Occurrence Matches, Smart Key - Helm Mode, Smart Keyboard Keys
 @subsection Smart Key - ERT Results Mode
 
 @cindex ert-results-mode
@@ -11106,7 +11108,7 @@ original location and yanks it at the new location.
 @end group
 @end format
 
-@node Smart Key - Occurrence Matches, Smart Key - The Koutliner, Smart Key - Delimited Things, Smart Keyboard Keys
+@node Smart Key - Occurrence Matches, Smart Key - The Koutliner, Smart Key - ERT Results Mode, Smart Keyboard Keys
 @subsection Smart Key - Occurrence Matches
 
 @format
@@ -11150,7 +11152,7 @@ When pressed within a Hyperbole Koutliner buffer (kotl-mode):
 @end group
 @end format
 
-@node Smart Key - Flymake Mode, Smart Key - RDB Mode, Smart Key - The Koutliner, Smart Keyboard Keys
+@node Smart Key - Flymake Mode, Smart Key - Profiler Report Mode, Smart Key - The Koutliner, Smart Keyboard Keys
 @subsection Smart Key - Flymake Mode
 
 @cindex linter
@@ -11239,7 +11241,32 @@ current buffer.
 wrap around at the end and beginning of the buffer.  Repeat with @bkbd{w}.
 @end table
 
-@node Smart Key - RDB Mode, Smart Key - Help Buffers, Smart Key - Flymake Mode, Smart Keyboard Keys
+@node Smart Key - Profiler Report Mode, Smart Key - RDB Mode, Smart Key - Flymake Mode, Smart Keyboard Keys
+@subsection Smart Key - Profiler Report Mode
+@cindex profiling
+@cindex code profiling
+@cindex report, profiler
+@format
+@group
+If pressed within a profiler-report buffer which displays Emacs Lisp
+percentage CPU time and memory usage across a recorded period:
+  ACTION KEY
+    (1) on the text of a linked call tree item, jumps to the definition
+        of the item;
+    (2) on or after the last line in the buffer, quits from the profiler
+        report.
+@end group
+@end format
+@format
+@group
+  ASSIST KEY
+    (1) on an item line, toggles exposure of the item's call tree.
+    (2) on or after the last line in the buffer, quits from the profiler
+        report.
+@end group
+@end format
+
+@node Smart Key - RDB Mode, Smart Key - Help Buffers, Smart Key - Profiler Report Mode, Smart Keyboard Keys
 @subsection Smart Key - RDB Mode
 @cindex rdb-mode
 @cindex database
@@ -12014,7 +12041,7 @@ If pressed within a Dired Image Thumbnail buffer:
 @end group
 @end format
 
-@node Smart Key - Gomoku Game, Smart Key - Magit Mode, Smart Key - Image Thumbnails, Smart Keyboard Keys
+@node Smart Key - Gomoku Game, Smart Key - The OO-Browser, Smart Key - Image Thumbnails, Smart Keyboard Keys
 @subsection Smart Key - Gomoku Game
 @cindex game, gomoku
 @cindex gomoku
@@ -12028,7 +12055,7 @@ If pressed within a Gomoku game buffer:
 @end group
 @end format
 
-@node Smart Key - The OO-Browser, Smart Key - Todotxt Mode, Smart Key - Magit Mode, Smart Keyboard Keys
+@node Smart Key - The OO-Browser, Smart Key - Todotxt Mode, Smart Key - Gomoku Game, Smart Keyboard Keys
 @subsection Smart Key - The OO-Browser
 
 @cindex OO-Browser
