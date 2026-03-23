@@ -1,5 +1,13 @@
 2026-03-22  Bob Weiner  <rsw@gnu.org>
 
+* man/hyperbole.texi (HyWiki Menu): Move ModeSet/ menu description here.
+
+* hui-menu.el (hui-menu-hywiki): Change item from 'Backlink-To' to
+    'Backlink-Consult'.
+  hui-mini.el (hui:menu-hywiki): Change item from 'BacklinkTo' to
+    'BacklinkConsult'.
+  man/hyperbole.texi (HyWiki Menu): Add BacklinkConsult entry.
+
 * hibtypes.el (grep-single-file): Add to handle grep -n on a single file
     where the lines do not show the filename.
   man/hyperbole.texi (Implicit Button Types): Add 'grep-single-file'.

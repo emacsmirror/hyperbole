@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    15-Oct-91 at 20:13:17
-;; Last-Mod:     22-Mar-26 at 01:24:46 by Bob Weiner
+;; Last-Mod:     22-Mar-26 at 23:15:20 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1055,7 +1055,7 @@ support underlined faces as well."
 	 '("Act"            hywiki-word-activate
 	   "Create and display page for HyWikiWord at point or when none, emulate a press of a Smart Key.")
 	 (when (fboundp 'consult-grep) ;; allow for autoloading
-	   '("BacklinkTo"    hywiki-consult-backlink
+	   '("BacklinkConsult" hywiki-consult-backlink
 	     "Use Consult to select a backlink (reference) to a prompted for HyWikiWord."))
 	 '("Create"         hywiki-word-create-and-display
 	    "Create and display a new or existing HyWikiWord referent, prompting with any existing referent names.")
