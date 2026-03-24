@@ -13,6 +13,11 @@
   man/hyperbole.texi (Smart Key - Profiler Report Mode): Add doc.
                (smart-profiler-report): Fix display of found buffer.
 
+2026-03-22  Mats Lidell  <matsl@gnu.org>
+
+* test/hibtypes-tests.el (ibtypes-tests--grep-msg):
+    (ibtypes-tests--hib-link-to-file-line): Add tests.
+
 2026-03-22  Bob Weiner  <rsw@gnu.org>
 
 * man/hyperbole.texi (HyWiki Menu): Move ModeSet/ menu description here.
