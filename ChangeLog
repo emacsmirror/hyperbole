@@ -4,6 +4,7 @@
     to call tree items or expanding/collapsing their call trees.
     (smart-profiler-report, smart-profiler-report-assist): Add.
   man/hyperbole.texi (Smart Key - Profiler Report Mode): Add doc.
+               (smart-profiler-report): Fix display of found buffer.
 
 2026-03-22  Bob Weiner  <rsw@gnu.org>
 

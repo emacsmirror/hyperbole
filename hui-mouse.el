@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    04-Feb-89
-;; Last-Mod:     23-Mar-26 at 18:49:48 by Bob Weiner
+;; Last-Mod:     23-Mar-26 at 21:47:31 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -2221,13 +2221,12 @@ If key is pressed:
     (quit-window))
    ;; If on the text of an entry, jump to its definition if is a link
    ((text-property-any (point) (1+ (point)) 'face 'link)
-    (let* ((curr-buffer)
-	   (find-function-after-hook '((lambda ()
-					 (setq curr-buffer (current-buffer))))))
-      (hpath:display-buffer (save-window-excursion
-			      (profiler-report-find-entry)
-			      curr-buffer)))
-    t)))
+    (let* ((dbuf)
+           (obuf (current-buffer)))
+      (profiler-report-find-entry)
+      (setq dbuf (window-buffer (selected-window)))
+      (switch-to-buffer obuf)
+      (hpath:display-buffer dbuf)))))
 
 (defun smart-profiler-report-assist ()
   "Use a single assist key or mouse assist key to toggle profiler call trees.
