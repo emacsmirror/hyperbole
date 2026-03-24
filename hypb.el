@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     6-Oct-91 at 03:42:38
-;; Last-Mod:     22-Mar-26 at 01:29:41 by Bob Weiner
+;; Last-Mod:     24-Mar-26 at 19:07:46 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -713,6 +713,8 @@ This will this install the Emacs helm package when needed."
 	       (error "(hypb:hkey-help-file): Non-existent file: \"%s\""
 		      help-file))))))
 
+(defvar hypb:in-string-and-tick (cons nil 0))
+
 (defun hypb:in-string-p (&optional max-lines range-flag)
   "Return non-nil iff point is within a string and not on the closing quote.
 
@@ -724,7 +726,8 @@ the positions exclude the delimiters.
 To prevent searching back to the buffer start and producing slow
 performance, this limits its count of quotes found prior to point
 to the beginning of the first line prior to point that contains a
-non-backslashed quote mark.
+non-backslashed quote mark and limits string length to a maximum
+of 9000 characters.
 
 Quoting conventions recognized are:
   double-quotes:                 \"str\";
@@ -733,7 +736,10 @@ Quoting conventions recognized are:
   Python triple single-quotes:   '''str''';
   Python triple double-quotes:   \"\"\"str\"\"\";
   Texinfo open and close quotes: ``str''."
+
   (let ((list-of-unformatted-open-close-regexps (eval hypb:in-string-mode-regexps))
+        ;; search limit length
+        (limit 9000)
         list-of-open-close-regexps)
     (if (and list-of-unformatted-open-close-regexps
              (listp list-of-unformatted-open-close-regexps)
@@ -783,12 +789,12 @@ Quoting conventions recognized are:
                                          (looking-at orig-close-regexp)))
                                (/= (or (char-before) 0) ?\\)
 		               (setq open-match-string (match-string 2)))
-                          (while (and (setq possible-delim (search-backward open-match-string nil t))
+                          (while (and (setq possible-delim (search-backward open-match-string (max (point-min) (- (point) limit)) t))
                                       (if (= (or (char-before) 0) ?\\)
                                           (goto-char (1- (point)))
 			                (progn (setq str-start (match-end 0))
                                                nil))))
-		        (when (setq possible-delim (re-search-backward open-regexp nil t))
+		        (when (setq possible-delim (re-search-backward open-regexp (max (point-min) (- (point) limit)) t))
                           (setq open-match-string (match-string 2))
 			  (setq str-start (match-end 2))))
 
@@ -823,7 +829,10 @@ Quoting conventions recognized are:
 					              (regexp-quote texinfo-close-quote))
 				              start (point))))
 
-                                 (progn (while (and (setq possible-delim (search-forward texinfo-close-quote nil t))
+                                 (progn (while (and (setq possible-delim (search-forward
+                                                                          texinfo-close-quote
+                                                                          (min (point-max) (+ (point) limit))
+                                                                          t))
                                                     (= (or (char-before (match-beginning 0)) 0) ?\\)))
                                         possible-delim)
 		                 (setq str-end (match-beginning 0)
@@ -839,7 +848,10 @@ Quoting conventions recognized are:
 		               ;; closing delimiter char to ensure it is not
 		               ;; backslash quoted and so the right delimiter is matched.
                                ;; Find the matching closing delimiter
-                               (progn (while (and (setq possible-delim (search-forward open-match-string nil t))
+                               (progn (while (and (setq possible-delim
+                                                        (search-forward open-match-string
+                                                                        (min (point-max) (+ (point) limit))
+                                                                        t))
                                                   (= (or (char-before (match-beginning 0)) 0) ?\\)))
                                       possible-delim)
 		               (setq str-end (match-beginning 0))

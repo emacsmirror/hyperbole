@@ -5,6 +5,8 @@
 
 2026-03-23  Bob Weiner  <rsw@gnu.org>
 
+* hypb.el (hypb:in-string-p): Limit searches to a max of 9000 chars for speed.
+
 * hui-mouse.el (hkey-alist): Add 'profiler-report-mode' support for jumping
     to call tree items or expanding/collapsing their call trees.
     (smart-profiler-report, smart-profiler-report-assist): Add.
