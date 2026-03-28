@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    19-Sep-91 at 20:45:31
-;; Last-Mod:     22-Mar-26 at 18:18:45 by Bob Weiner
+;; Last-Mod:     28-Mar-26 at 13:02:39 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -191,12 +191,10 @@ only to prevent false matches."
 				 (re-search-forward ":\\(CUSTOM_\\)?ID:[ \t]+"
 						    (line-end-position) t)))
 	    (hact 'message "On Org ID definition; use {C-u M-RET} to copy a link to an ID.")
-	  (when (let ((inhibit-message t) ;; Inhibit org-id-find status msgs
+	  (when (let ((inhibit-message t) ;; Inhibit `org-id-find' status msgs
 		      (obuf (current-buffer))
 		      (omode major-mode))
-		  (prog1 (setq m (or (and (featurep 'org-roam)
-					  (org-roam-id-find id 'marker))
-				     (org-id-find id 'marker)))
+		  (prog1 (setq m (org-id-find id 'marker))
 		    ;; org-find-id sets current buffer mode to Org
 		    ;; mode even if ID is not found; switch it back
 		    ;; when necessary.
@@ -218,9 +216,8 @@ If the referenced location is found, return non-nil."
         (setq id (substring id 3)))
       ;; Ignore ID definitions or when not on a possible ID
       (when (and id
-		 (let ((inhibit-message t)) ;; Inhibit org-id-find status msgs
-		   (setq m (or (and (featurep 'org-roam) (org-roam-id-find id 'marker))
-			       (org-id-find id 'marker)))))
+		 (let ((inhibit-message t)) ;; Inhibit `org-id-find' status msgs
+		   (setq m (org-id-find id 'marker))))
 	(save-excursion
 	  (setq mpos (marker-position m))
 	  (set-buffer (marker-buffer m))
@@ -1027,15 +1024,16 @@ LINE-NUM may be an integer or string."
           ((stringp source-loc)
            (setq file (expand-file-name file (file-name-directory source-loc))))
           (t (setq file (or (hpath:prepend-shell-directory file)
-		     ;; find-library-name will strip file
-		     ;; suffixes, so use it only when the file
-		     ;; either doesn't have a suffix or has a
-		     ;; library suffix.
-		     (and (or (null (setq ext (file-name-extension file)))
-			      (member (concat "." ext) (get-load-suffixes)))
-			  (ignore-errors (find-library-name file)))
-                     (hpath:is-p (expand-file-name file))
-                     (hywiki-get-existing-page-file file)))))
+		            ;; find-library-name will strip file
+		            ;; suffixes, so use it only when the file
+		            ;; either doesn't have a suffix or has a
+		            ;; library suffix.
+                            (let ((ext (file-name-extension file)))
+		              (when (or (null ext)
+			                (member (concat "." ext) (get-load-suffixes)))
+			        (ignore-errors (find-library-name file))))
+                            (hpath:is-p (expand-file-name file))
+                            (hywiki-get-existing-page-file file)))))
     (when (file-exists-p (hpath:normalize file))
       (actypes::link-to-file-line file line-num))))
 
