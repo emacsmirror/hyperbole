@@ -1,3 +1,16 @@
+2026-03-28 Bob Weiner  <rsw@gnu.org>
+
+* hypb.el (hypb:sqlite-p): Add to return non-nil when Emacs supports sqlite.
+          (hypb:advised-p): Add to test whether a function has been advised with
+    a specific function.
+  hsys-org.el (hsys-org-id-find-advice): Add as :before advice to `org-id-find'
+    to remove :before-until advice that `org-roam-id-find' adds if sqlite is not
+    available inside Emacs.
+  hactypes.el (link-to-org-id):
+  hibtypes.el (org-id, org-id:help): Remove call of `org-roam-id-find' since that
+    will be called when loaded by any call to `org-id-find' as `org-roam' advises
+    it.
+
 2026-03-26  Mats Lidell  <matsl@gnu.org>
 
 * test/hui-tests.el (hui--kill-region-delimited-text-and-yank-back):
@@ -18,12 +31,20 @@
     (hywiki-org-to-heading-instance): Use with-suppressed-warnings for
     obsolete org-show-entry.
 
+2026-03-24  Bob Weiner  <rsw@gnu.org>
+
+* hibtypes.el (hib-link-to-file-line): Add missing 'let' for 'ext' variable,
+    fix indentation and change 'and' to 'when' for clarity.
+
 2026-03-23  Bob Weiner  <rsw@gnu.org>
+
+* hypb.el (hypb:in-string-p): Limit searches to a max of 9000 chars for speed.
 
 * hui-mouse.el (hkey-alist): Add 'profiler-report-mode' support for jumping
     to call tree items or expanding/collapsing their call trees.
     (smart-profiler-report, smart-profiler-report-assist): Add.
   man/hyperbole.texi (Smart Key - Profiler Report Mode): Add doc.
+               (smart-profiler-report): Fix display of found buffer.
 
 2026-03-22  Mats Lidell  <matsl@gnu.org>
 

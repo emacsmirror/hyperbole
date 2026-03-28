@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    23-Sep-91 at 20:34:36
-;; Last-Mod:     15-Mar-26 at 14:44:00 by Bob Weiner
+;; Last-Mod:     28-Mar-26 at 13:03:44 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -639,13 +639,12 @@ information on how to specify a mail reader to use."
 	(hypb:error "(link-to-mail): No msg `%s' in file \"%s\""
 		    mail-msg-id mail-file)))))
 
-(defact link-to-org-id (id &optional title)
-  "Display the Org entry, if any, for ID with optional TITLE.
+(defact link-to-org-id (id &optional _title)
+  "Display the Org entry, if any, for ID with optional _TITLE.
 ID is a uuid without any \\='id:' prefix."
   (when (stringp id)
-    (let* ((inhibit-message t) ;; Inhibit org-id-find status msgs
-	   (m (or (and (featurep 'org-roam) (org-roam-id-find id 'marker))
-		  (org-id-find id 'marker))))
+    (let* ((inhibit-message t) ;; Inhibit `org-id-find' status msgs
+	   (m (org-id-find id 'marker)))
       (when m
 	(hact 'link-to-org-id-marker m)))))
 
