@@ -1,3 +1,14 @@
+* hypb.el (hypb:sqlite-p): Add to return non-nil when Emacs supports sqlite.
+          (hypb:advised-p): Add to test whether a function has been advised with
+    a specific function.
+  hsys-org.el (hsys-org-id-find-advice): Add as :before advice to `org-id-find'
+    to remove :before-until advice that `org-roam-id-find' adds if sqlite is not
+    available inside Emacs.
+  hactypes.el (link-to-org-id):
+  hibtypes.el (org-id, org-id:help): Remove call of `org-roam-id-find' since that
+    will be called when loaded by any call to `org-id-find' as `org-roam' advises
+    it.
+
 2026-03-24  Bob Weiner  <rsw@gnu.org>
 
 * hibtypes.el (hib-link-to-file-line): Add missing 'let' for 'ext' variable,

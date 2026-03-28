@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     6-Oct-91 at 03:42:38
-;; Last-Mod:     24-Mar-26 at 19:07:46 by Bob Weiner
+;; Last-Mod:     28-Mar-26 at 11:58:58 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -144,6 +144,18 @@ text will become visible."
   (unless (member element buffer-invisibility-spec)
     (setq buffer-invisibility-spec
 	  (cons element buffer-invisibility-spec))))
+
+;;;###autoload
+(defun hypb:advised-p (advised-function advice-function)
+  "Return t if ADVISED-FUNCTION is advised with ADVICE-FUNCTION.
+Uses the newer \"nadvice\" elisp library, not \"advice\"."
+  (let (found)
+    (when (advice--p (symbol-function advised-function))
+      (advice-mapc (lambda (advs _props)
+                     (when (eq advs advice-function)
+                       (setq found t)))
+                   advised-function))
+    found))
 
 ;;;###autoload
 (defun hypb:activate-interaction-log-mode ()
@@ -1159,6 +1171,13 @@ descriptors."
       (push (seq-into (seq-take seq size) 'list) result)
       (setq seq (seq-drop seq size)))
     (nreverse result)))
+
+;;;###autoload
+(defun hypb:sqlite-p ()
+  "Return non-nil if Emacs has available SQLite support."
+  (if (fboundp 'sqlite-available-p)
+      (sqlite-available-p)
+    (fboundp 'sqlite-open)))
 
 (defun hypb:straight-package-plist (pkg-string)
   "Return package info for a straight.el built package with name PKG-STRING.
