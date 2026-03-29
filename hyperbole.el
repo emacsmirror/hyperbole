@@ -9,7 +9,7 @@
 ;; Maintainer:   Robert Weiner <rsw@gnu.org>
 ;; Maintainers:  Robert Weiner <rsw@gnu.org>, Mats Lidell <matsl@gnu.org>
 ;; Created:      06-Oct-92 at 11:52:51
-;; Last-Mod:     15-Feb-26 at 20:18:18 by Bob Weiner
+;; Last-Mod:     28-Mar-26 at 14:44:14 by Bob Weiner
 ;; Released:     10-Mar-24
 ;; Version:      9.0.2pre
 ;; Keywords:     comm, convenience, files, frames, hypermedia, languages, mail, matching, mouse, multimedia, outlines, tools, wp
@@ -31,38 +31,38 @@
 ;; of all kinds of textual information, utilizing Emacs for editing.  It can
 ;; dramatically increase your productivity and greatly reduce the number of
 ;; keyboard/mouse keys you'll need to work efficiently.
-;; 
+;;
 ;; Hyperbole lets you:
-;; 
+;;
 ;; 1. Quickly create hyperlink buttons either from the keyboard or by dragging
 ;; between a source and destination window with a mouse button depressed.
 ;; Later activate buttons by pressing/clicking on them or by giving the name of
 ;; the button.
-;; 
+;;
 ;; 2. Activate many kinds of `implicit buttons' recognized by context within
 ;; text buffers, e.g. URLs, grep output lines, and git commits.  A single key
 ;; or mouse button automatically does the right thing in dozens of contexts;
 ;; just press and go.
-;; 
+;;
 ;; 3. Build outlines with multi-level numbered outline nodes, e.g. 1.4.8.6,
 ;; that all renumber automatically as any node or tree is moved in the
 ;; outline.  Each node also has a permanent hyperlink anchor that you can
 ;; reference from any other node;
-;; 
+;;
 ;; 4. Manage all your contacts quickly with hierarchical categories and embed
 ;; hyperlinks within each entry.  Or create an archive of documents with
 ;; hierarchical entries and use the same search mechanism to quickly find any
 ;; matching entry;
-;; 
+;;
 ;; 5. Use single keys to easily manage your Emacs windows or frames and quickly
 ;; retrieve saved window and frame configurations;
-;; 
+;;
 ;; 6. Search for things in your current buffers, in a directory tree or across
 ;; major web search engines with the touch of a few keys.
-;; 
+;;
 ;; The common thread in all these features is making retrieval, management and
 ;; display of information fast and easy.  That is Hyperbole's purpose.
-;; 
+;;
 ;; ----
 ;;
 ;; See the "INSTALL" file for installation instructions and the "README.md" file
@@ -501,7 +501,7 @@ frame, those functions by default still return the prior frame."
   ;; loaded parts of Org before his load path is finalized.  It loads
   ;; the newer version of Org, if any, assuming `load-path' is configured
   ;; correctly.
-  ;; (hsys-org-fix-version)
+  (hsys-org-fix-version)
   ;;
   ;; When vertico-mode is used, vertico-mouse-mode is needed for the
   ;; Action Key to properly select completions from the candidate
@@ -516,7 +516,7 @@ frame, those functions by default still return the prior frame."
   ;;
   ;; Hyperbole initialization is complete.
   (message "Initializing Hyperbole...done"))
-  
+
 
 ;; This call loads the rest of the Hyperbole system.
 (require 'hinit)

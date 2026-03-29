@@ -59,6 +59,8 @@
 
 2026-03-28 Bob Weiner  <rsw@gnu.org>
 
+* hyperbole.el (hyperb:init): Uncomment call to 'hsys-org-fix-version'
+    accidentally commented out on Jan 11, 2026.
 
 * hypb.el (hypb:sqlite-p): Add to return non-nil when Emacs supports sqlite.
           (hypb:advised-p): Add to test whether a function has been advised with
