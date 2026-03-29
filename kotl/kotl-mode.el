@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    6/30/93
-;; Last-Mod:     19-Feb-26 at 01:12:25 by Bob Weiner
+;; Last-Mod:     29-Mar-26 at 12:53:49 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -2780,12 +2780,28 @@ With prefix ARG, kill entire cell contents."
 
 (defun kotl-mode:kill-tree (&optional arg)
   "Kill ARG following trees starting with tree rooted at point.
-If ARG is a non-positive number, nothing is done."
+An ARG of 0 deletes the entire koutline and inserts an empty #1 cell,
+restarting the outline fresh once you save it.
+
+If ARG is a negative number, nothing is done."
   (interactive "*p")
   (or (integerp arg) (setq arg 1))
-  (let ((killed) (label (kcell-view:label))
+  (let ((killed)
+	(label (kcell-view:label))
 	(lbl-sep-len (kview:label-separator-length kotl-kview))
 	start end sib)
+    (when (zerop arg)
+      (setq start (point-min)
+	    end   (point-max)
+	    sib   nil
+	    killed t)
+      ;; Don't want to delete any prior cells, so if on last cell, ensure
+      ;; this is the last one killed.
+      (if (kotl-mode:last-cell-p)
+	  (progn (setq arg 0)
+		 (kview:delete-region start end))
+	(kview:delete-region start end))
+      (kview:id-counter-set kotl-kview 0))
     (while (> arg 0)
       (setq start (kotl-mode:tree-start)
 	    end   (kotl-mode:tree-end)
@@ -2798,7 +2814,8 @@ If ARG is a non-positive number, nothing is done."
 	  (progn (setq arg 0)
 		 (kview:delete-region start end))
 	(kview:delete-region start end)
-	(kotl-mode:to-valid-position)))
+	(unless (kotl-mode:buffer-empty-p)
+	  (kotl-mode:to-valid-position))))
     (when killed
       (cond (sib (klabel-type:update-labels label))
 	    ((kotl-mode:buffer-empty-p)
@@ -3224,7 +3241,7 @@ collapsed."
       (kotl-mode:expand-tree all-flag)
     (kotl-mode:collapse-tree all-flag)))
 
-;;; 
+;;;
 ;;;###autoload
 (defun kotl-mode:overview (&optional arg)
   "Show the first line of each cell.
@@ -3264,7 +3281,7 @@ With optional prefix ARG, toggle display of blank lines between cells."
     ;; Restore buffer modification status
     (set-buffer-modified-p modified-p)))
 
-;;; 
+;;;
 (defun kotl-mode:hide-sublevels (levels-to-keep)
   "Hide all cells in outline at levels deeper than LEVELS-TO-KEEP (a number).
 Shows any hidden cells within LEVELS-TO-KEEP.  1 is the first level.  0 means

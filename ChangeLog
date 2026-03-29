@@ -1,3 +1,11 @@
+2026-03-29  Bob Weiner  <rsw@gnu.org>
+
+* kotl/kview.el (kview:id-counter-set): Add.
+  kotl/kotl-mode.el (kotl-mode:kill-tree): Add support for sending 0 as
+    the prefix arg to say kill from the root of the outline tree all the
+    way down, killing all cells and inserting a new blank #1 cell in
+    the buffer.
+
 * hypb.el (hypb:sqlite-p): Add to return non-nil when Emacs supports sqlite.
           (hypb:advised-p): Add to test whether a function has been advised with
     a specific function.

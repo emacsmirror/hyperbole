@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    6/30/93
-;; Last-Mod:      1-Jan-26 at 18:18:36 by Mats Lidell
+;; Last-Mod:     29-Mar-26 at 12:34:05 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -847,6 +847,11 @@ On success, return t, else nil."
 (defun kview:id-counter (kview)
   "Return the highest current idstamp (an integer) used by KVIEW."
   (kcell:get-attr (kview:get-attr kview 'top-cell) 'id-counter))
+
+(defun kview:id-counter-set (kview id-counter)
+  "Reset the KVIEW ID-COUNTER for the current buffer.
+Use this only after a Koutline has been created."
+  (kcell:set-attr (kview:get-attr kview 'top-cell) 'id-counter id-counter))
 
 (defun kview:id-increment (kview)
   "Return next idstamp (an integer) for KVIEW."
