@@ -6,6 +6,9 @@
     way down, killing all cells and inserting a new blank #1 cell in
     the buffer.
 
+2026-03-28 Bob Weiner  <rsw@gnu.org>
+
+
 * hypb.el (hypb:sqlite-p): Add to return non-nil when Emacs supports sqlite.
           (hypb:advised-p): Add to test whether a function has been advised with
     a specific function.
@@ -16,6 +19,26 @@
   hibtypes.el (org-id, org-id:help): Remove call of `org-roam-id-find' since that
     will be called when loaded by any call to `org-id-find' as `org-roam' advises
     it.
+
+2026-03-26  Mats Lidell  <matsl@gnu.org>
+
+* test/hui-tests.el (hui--kill-region-delimited-text-and-yank-back):
+    Remove expected-result tag and expand tests.
+    (hui-tests--selectable-thing-and-bounds): Add test.
+
+2026-03-24  Mats Lidell  <matsl@gnu.org>
+
+* hui-mouse.el (profiler-report-find-entry)
+    (profiler-report-toggle-entry): Declare functions and sort the
+    declarations.
+    (smart-profiler-report): Shorten docstring line below 80
+    chars. Do explicit initialization of curr-buffer since
+    byte-compiler does not see it will be set.
+
+* hywiki.el (consult-grep-args, consult-ripgrep-args): Defvar consult
+    variables.
+    (hywiki-org-to-heading-instance): Use with-suppressed-warnings for
+    obsolete org-show-entry.
 
 2026-03-24  Bob Weiner  <rsw@gnu.org>
 
