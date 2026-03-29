@@ -134,7 +134,6 @@
 (defvar org-link--link-folding-spec)
 (defvar org-roam-directory)
 (defvar plstore-cache-passphrase-for-symmetric-encryption)
-(defvar reveal-auto-hide)
 
 ;;; ************************************************************************
 ;;; Public variables
@@ -377,19 +376,16 @@ With prefix argument, prompts for optional FILE to add entry within.
 NAME may be of the form: parent/child to insert child below a parent
 entry which begins with the parent string."
   (interactive
-   (progn
-     (unless (fboundp 'mail-fetch-field)
-       (require 'mail-utils))
-     (let* ((lst (hyrolo-name-and-email))
-	    (name (car lst))
-	    (email (car (cdr lst)))
-	    (entry (read-string "Name to add to rolo: "
-				(or name email))))
-       (list (if (and email name
-		      (string-match (concat "\\`" (regexp-quote entry)) name))
-		 (format hyrolo-email-format entry email)
-	       entry)
-	     current-prefix-arg))))
+   (let* ((lst (hyrolo-name-and-email))
+	  (name (car lst))
+	  (email (car (cdr lst)))
+	  (entry (read-string "Name to add to rolo: "
+			      (or name email))))
+     (list (if (and email name
+		    (string-match (concat "\\`" (regexp-quote entry)) name))
+	       (format hyrolo-email-format entry email)
+	     entry)
+	   current-prefix-arg)))
   (when (or (not (stringp name)) (string-equal name ""))
     (error "(hyrolo-add): Invalid name: `%s'" name))
   (when (and (called-interactively-p 'interactive) file)
@@ -3633,23 +3629,6 @@ Also see the `reveal-auto-hide' variable."
   :init-value nil
   :keymap nil
   nil) ;; Make this a no-op until can debug `reveal-mode' in *HyRolo* buffer
-
-(unless (boundp 'reveal-auto-hide)
-(defcustom reveal-auto-hide t
-  "Automatically hide revealed text when leaving it.
-If nil, the `reveal-hide-revealed' command can be useful to hide
-revealed text manually."
-  :type 'boolean
-  :version "28.1"))
-
-(unless (fboundp 'reveal-hide-revealed)
-(defun reveal-hide-revealed ()
-  "Hide all revealed text.
-If there is revealed text under point, this command does not hide
-that text."
-  (interactive)
-  (let ((reveal-auto-hide t))
-    (reveal-post-command))))
 
 (defun hyrolo-reveal-open-new-overlays (old-ols)
   (let ((repeat t))

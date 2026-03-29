@@ -256,7 +256,7 @@ The button's attributes are stored in the symbol, `hbut:current'.")
      . ((smart-dired-sidebar) . (smart-dired-sidebar)))
     ;;
     ;; Handle Emacs push buttons in buffers
-    ((and (fboundp 'button-at) (button-at (point)))
+    ((button-at (point))
      . ((smart-push-button nil (mouse-event-p last-command-event))
 	. (smart-push-button-help nil (mouse-event-p last-command-event))))
     ;;
@@ -999,12 +999,7 @@ If key is pressed:
 		(if (save-excursion
 		      (goto-char (point-min))
 		      (re-search-forward "^D" nil t))
-		    (cond ;; For Tree-dired compatibility
-		     ((fboundp 'dired-do-flagged-delete)
-		      (dired-do-flagged-delete))
-		     ((fboundp 'dired-do-deletions)
-		      (dired-do-deletions))
-		     (t (error "(smart-dired): No Dired expunge function")))))
+		    (dired-do-flagged-delete)))
 	       (t (hpath:find (smart-dired-pathname-up-to-point)))))
 	((last-line-p) (quit-window))
 	(t (hpath:find (or (dired-get-filename nil t) "")))))

@@ -713,17 +713,15 @@ This will this install the Emacs helm package when needed."
 
 (defun hypb:hkey-help-file ()
   "Return the full path to the Hyperbole mouse key help file."
-  (cond ((and (fboundp 'locate-data-file)
-	      (locate-data-file "hkey-help.txt")))
-	(t (let* ((hypb-man (expand-file-name "man/" hyperb:dir))
-		  (help-file (expand-file-name "hkey-help.txt" hypb-man)))
-	     (if (or (file-exists-p help-file)
-		     (file-exists-p
-		      (setq help-file (expand-file-name
-				       "hkey-help.txt" data-directory))))
-		 help-file
-	       (error "(hypb:hkey-help-file): Non-existent file: \"%s\""
-		      help-file))))))
+  (let* ((hypb-man (expand-file-name "man/" hyperb:dir))
+	 (help-file (expand-file-name "hkey-help.txt" hypb-man)))
+    (if (or (file-exists-p help-file)
+	    (file-exists-p
+	     (setq help-file (expand-file-name
+			      "hkey-help.txt" data-directory))))
+	help-file
+      (error "(hypb:hkey-help-file): Non-existent file: \"%s\""
+	     help-file))))
 
 (defvar hypb:in-string-and-tick (cons nil 0))
 
@@ -1384,10 +1382,8 @@ If FILE is not an absolute path, expand it relative to `hyperb:dir'."
 Without file, the banner is prepended to the current buffer."
   (let ((hyperbole-banner-path (expand-file-name "hyperbole-banner.png" hyperb:dir)))
     (unless (file-readable-p hyperbole-banner-path)
-      (setq hyperbole-banner-path (if (fboundp 'locate-data-file)
-				      (locate-data-file "hyperbole-banner.png")
-				    (expand-file-name "hyperbole-banner.png"
-						      data-directory))))
+      (setq hyperbole-banner-path (expand-file-name "hyperbole-banner.png"
+						    data-directory)))
     (if (or (not (fboundp 'create-image))
 	    (not (display-graphic-p))
 	    (let ((button (next-button (point-min))))

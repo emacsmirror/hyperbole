@@ -829,7 +829,7 @@ no PROJECT value is provided, it defaults to the value of
 		 (when project-dir (setq project-dir (expand-file-name project-dir)))
 		 (cond ((and project-dir (file-readable-p project-dir) (file-directory-p project-dir))
 			(if reference
-			    (if (and (equal ref-type "commits") (fboundp 'vc-print-root-log))
+			    (if (equal ref-type "commits")
 				(let ((default-directory project-dir))
 				  (vc-print-root-log))
 			      ;; Display commit diffs in a help buffer
@@ -886,8 +886,7 @@ Return nil if no match is found."
   (let (root)
     (cond
      ;; Try to find in current directory tree first...
-     ((and (fboundp 'locate-dominating-file)
-	   (setq root (locate-dominating-file default-directory ".git"))
+     ((and (setq root (locate-dominating-file default-directory ".git"))
 	   (hibtypes-git-find-execute "find" root file)))
      ;; then in default project tree...
      ((and hibtypes-git-default-project
