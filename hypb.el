@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     6-Oct-91 at 03:42:38
-;; Last-Mod:     28-Mar-26 at 11:58:58 by Bob Weiner
+;; Last-Mod:     29-Mar-26 at 19:02:41 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -67,6 +67,9 @@
 (defconst hypb:help-buf-prefix "*Help: Hyperbole "
   "Prefix attached to all native Hyperbole help buffer names.
 This should end with a space.")
+
+(defvar hypb:in-string-cache-disable nil
+  "When non-nil, disable use of `hypb:in-string-p' caching.")
 
 (defcustom hypb:in-string-mode-regexps
   '(if (derived-mode-p 'texinfo-mode)
@@ -723,21 +726,130 @@ This will this install the Emacs helm package when needed."
       (error "(hypb:hkey-help-file): Non-existent file: \"%s\""
 	     help-file))))
 
-(defvar hypb:in-string-and-tick (cons nil 0))
-
 (defun hypb:in-string-p (&optional max-lines range-flag)
-  "Return non-nil iff point is within a string and not on the closing quote.
+  "Return (is-in-string start end) for point, cached by buffer & modified time.
+Return non-nil iff point is within a string and not on the closing quote.
 
 With optional MAX-LINES, an integer, match only within that many
 lines from point.  With optional RANGE-FLAG when there is a
-match, return list of (string-matched start-pos end-pos), where
-the positions exclude the delimiters.
+match, return list of (in-string-flag start-pos end-pos), where
+in-string-flag is t or nil and the positions exclude the delimiters.
 
 To prevent searching back to the buffer start and producing slow
 performance, this limits its count of quotes found prior to point
 to the beginning of the first line prior to point that contains a
 non-backslashed quote mark and limits string length to a maximum
 of 9000 characters.
+
+Quoting conventions recognized are:
+  double-quotes:                 \"str\";
+  Markdown triple backticks:     ```str```;
+  Python single-quotes:          \\='str\\=';
+  Python triple single-quotes:   '''str''';
+  Python triple double-quotes:   \"\"\"str\"\"\";
+  Texinfo open and close quotes: ``str''."
+
+  (unless (and (integerp max-lines) (<= max-lines 0))
+    (let* ((buf (current-buffer))
+           (tick (buffer-chars-modified-tick))
+           (pos (point))
+           (cache-entry (gethash buf hypb:in-string-cache)))
+
+      ;; If buffer mod tick has changed, empty the buffer's string range cache
+      (when (or (not cache-entry) (/= tick (car cache-entry)))
+        (setq cache-entry (list tick)) ; Start a new list with just the tick
+        (puthash buf cache-entry hypb:in-string-cache))
+
+      ;; Check for a cache match range.  The cdr of `cache-entry' is a list of
+      ;; (in-str start end) ranges.
+      (let ((match (cl-find-if (lambda (r)
+                                 (and (>= pos (or (nth 1 r) (point-max)))
+                                      (<= pos (or (nth 2 r) (point-min)))))
+                               (cdr cache-entry)))
+            cache-match)
+        (when match
+          ;; Cache match
+          (setq cache-match match))
+
+        ;; When no matching cache entry, search for a string match
+        (let* ((entry (or cache-match
+                          ;; This ignores max-lines, so final result of
+                          ;; whether in a string with max-lines may differ
+                          ;; from what this returns.  This allows its result
+                          ;; to be used in the cache.
+                          ;; To call it with the buffer narrowed to
+                          ;; according to `max-lines', use:
+                          ;; (hypb:narrow-to-max-lines max-lines #'hypb:in-string-check t)
+                          (hypb:in-string-check t)))
+               (in-str (nth 0 entry))
+               (str-start (nth 1 entry))
+               (str-end (nth 2 entry)))
+          (cond ((and (not match) (not hypb:in-string-cache-disable))
+                 ;; Add the new range into the buffer's cache
+                 (setcdr cache-entry (cons entry (cdr cache-entry))))
+                (match)
+                ((not entry)
+                 (setq hypb:in-string-cache-disable t)
+                 (error "(hypb:in-string-p): buffer = %s; cache-match = %S; entry = %s; point = %d"
+                        (current-buffer) cache-match entry (point))))
+	                ;; Ignore if more than `max-lines' matched
+	  (when (and in-str str-start str-end
+		     (or (null max-lines)
+			 (and (integerp max-lines)
+			      ;; When computing the number of lines in
+			      ;; the string match, ignore any leading and
+			      ;; trailing newlines.  This allows for
+			      ;; opening and closing quotes to be on
+			      ;; separate lines, useful with multi-line
+			      ;; strings.
+                              (let (newlines)
+				(or (< (setq newlines (count-matches "\n" str-start str-end))
+				       max-lines)
+                                    (< (save-excursion
+                                         (- newlines
+                                            (progn (goto-char str-start)
+                                                   (if (looking-at "[\n\r\f\t ]+")
+                                                       (count-matches "\n" (match-beginning 0) (match-end 0))
+                                                     0))
+                                            (progn (goto-char str-end)
+                                                   (if (zerop (skip-chars-backward "\n\r\f\t "))
+                                                       0
+                                                     (count-matches "\n" (point) str-end)))))
+				       max-lines))))))
+	    (if range-flag
+                (cond ((zerop str-start)
+		       (list nil (point) (point)))
+                      (in-str (list (buffer-substring-no-properties str-start str-end) str-start str-end)))
+	      in-str)))))))
+
+(defun hypb:narrow-to-max-lines (max-lines func &rest args)
+  "Narrow buffer to +/- (+ 1 MAX-LINES) including current line.
+Then call FUNC with rest of ARGS and afterwards restore prior narrowing and
+prior point."
+  (save-excursion
+    (save-restriction
+      (when (integerp max-lines)
+	(if (zerop max-lines)
+	    (narrow-to-region (point) (point)) ;; Empty range
+	  ;; Allow for +/- (+ 1 max-lines) including current line so start
+	  ;; and end delimiters can be on separate lines.  Before returning,
+	  ;; this function checks that any matched string has <= max-lines.
+	  (narrow-to-region (line-beginning-position
+			     (when max-lines (1+ (- max-lines))))
+			    (line-end-position (1+ max-lines)))))
+      (apply func args))))
+
+(defun hypb:in-string-check (&optional range-flag)
+  "Return non-nil iff point is within a string and not on the closing quote.
+
+With optional RANGE-FLAG when there is a match, return list of (in-string-flag
+start-pos end-pos), where in-string-flag is t or nil and the positions exclude
+the delimiters.
+
+To prevent searching back to the buffer start and producing slow
+performance, this limits its count of quotes found prior to point to the
+beginning of the first line prior to point that contains a non-backslashed
+quote mark and limits string length to a maximum of 9000 characters.
 
 Quoting conventions recognized are:
   double-quotes:                 \"str\";
@@ -767,123 +879,102 @@ Quoting conventions recognized are:
                         list-of-unformatted-open-close-regexps)))
       (error "(hypb:in-string-p): `hypb:in-string-mode-regexps' must be a list of lists, not %S"
              hypb:in-string-mode-regexps))
-    (save-excursion
-      (save-restriction
-        (when (integerp max-lines)
-	  (if (zerop max-lines)
-	      (narrow-to-region (point) (point)) ;; Empty range
-	    ;; Allow for +/- (+ 1 max-lines) including current line so start
-	    ;; and end delimiters can be on separate lines.  Before returning,
-	    ;; this function checks that any matched string has <= max-lines.
-	    (narrow-to-region (line-beginning-position
-			       (when max-lines (1+ (- max-lines))))
-			      (line-end-position (1+ max-lines)))))
-        (cl-block :result
-          (let ((opoint (point))
-	        (start (point-min)))
-            (dolist (open-close-regexps list-of-open-close-regexps)
-              (save-excursion
-                ;; Don't use `syntax-ppss' here as it fails to ignore backquoted
-                ;; double quote characters in strings and doesn't work in
-                ;; `change-log-mode' due to its syntax-table.
-	        (let ((open-match-string "")
-                      possible-delim
-	              str
-	              str-start
-	              str-end)
-	          (cl-destructuring-bind (orig-open-regexp orig-close-regexp open-regexp _close-regexp)
-                      open-close-regexps
-	            (save-match-data
-                      (if (and (setq possible-delim
-                                     (or (looking-at orig-open-regexp)
-                                         (looking-at orig-close-regexp)))
-                               (/= (or (char-before) 0) ?\\)
-		               (setq open-match-string (match-string 2)))
-                          (while (and (setq possible-delim (search-backward open-match-string (max (point-min) (- (point) limit)) t))
-                                      (if (= (or (char-before) 0) ?\\)
-                                          (goto-char (1- (point)))
-			                (progn (setq str-start (match-end 0))
-                                               nil))))
-		        (when (setq possible-delim (re-search-backward open-regexp (max (point-min) (- (point) limit)) t))
-                          (setq open-match-string (match-string 2))
-			  (setq str-start (match-end 2))))
+    (cl-block :result
+      (let ((opoint (point))
+	    (start (point-min)))
+        (dolist (open-close-regexps list-of-open-close-regexps)
+          (save-excursion
+            ;; Don't use `syntax-ppss' here as it fails to ignore backquoted
+            ;; double quote characters in strings and doesn't work in
+            ;; `change-log-mode' due to its syntax-table.
+	    (let ((open-match-string "")
+                  possible-delim
+	          in-str
+	          str-start
+	          str-end)
+	      (cl-destructuring-bind (orig-open-regexp orig-close-regexp open-regexp _close-regexp)
+                  open-close-regexps
+	        (save-match-data
+                  (if (and (setq possible-delim
+                                 (or (looking-at orig-open-regexp)
+                                     (looking-at orig-close-regexp)))
+                           (/= (or (char-before) 0) ?\\)
+		           (setq open-match-string (match-string 2)))
+                      (while (and (setq possible-delim (search-backward open-match-string (max (point-min) (- (point) limit)) t))
+                                  (if (= (or (char-before) 0) ?\\)
+                                      (goto-char (1- (point)))
+			            (progn (setq str-start (match-end 0))
+                                           nil))))
+		    (when (setq possible-delim (re-search-backward open-regexp (max (point-min) (- (point) limit)) t))
+                      (setq open-match-string (match-string 2))
+		      (setq str-start (match-end 2))))
 
-	              (when (and possible-delim
-                                 str-start
-		                 ;; If this is the start of a string, it must be
-		                 ;; at the start of line, preceded by whitespace
-		                 ;; or preceded by another string end sequence.
-		                 ;; (save-match-data
-		                 ;; 	 (or (string-empty-p (match-string 1))
-		                 ;; 	     (string-search (match-string 1) " \t\n\r\f")
-		                 ;; 	     (progn (goto-char (1+ (point)))
-		                 ;; 		    (looking-back close-regexp nil))))
-		                 )
-	                (forward-line 0)
-	                (setq start (point))
-	                (goto-char opoint)
-	                (if (and (derived-mode-p 'texinfo-mode)
-		                 (string-equal open-match-string texinfo-open-quote))
-		            (and (cl-oddp (- (count-matches (regexp-quote open-match-string)
-						            start (point))
-				             ;; Subtract any backslash quoted delimiters
-				             (count-matches
-				              (format "[\\]\\(%s\\)"
-					              (regexp-quote open-match-string))
-				              start (point))
-				             (count-matches (regexp-quote texinfo-close-quote)
-						            start (point))
-				             ;; Subtract any backslash quoted delimiters
-				             (count-matches
-				              (format "[\\]\\(%s\\)"
-					              (regexp-quote texinfo-close-quote))
-				              start (point))))
+	          (when (and possible-delim
+                             str-start
+		             ;; If this is the start of a string, it must be
+		             ;; at the start of line, preceded by whitespace
+		             ;; or preceded by another string end sequence.
+		             ;; (save-match-data
+		             ;; 	 (or (string-empty-p (match-string 1))
+		             ;; 	     (string-search (match-string 1) " \t\n\r\f")
+		             ;; 	     (progn (goto-char (1+ (point)))
+		             ;; 		    (looking-back close-regexp nil))))
+		             )
+	            (forward-line 0)
+	            (setq start (point))
+	            (goto-char opoint)
+	            (if (and (derived-mode-p 'texinfo-mode)
+		             (string-equal open-match-string texinfo-open-quote))
+		        (and (cl-oddp (- (count-matches (regexp-quote open-match-string)
+						        start (point))
+				         ;; Subtract any backslash quoted delimiters
+				         (count-matches
+				          (format "[\\]\\(%s\\)"
+					          (regexp-quote open-match-string))
+				          start (point))
+				         (count-matches (regexp-quote texinfo-close-quote)
+						        start (point))
+				         ;; Subtract any backslash quoted delimiters
+				         (count-matches
+				          (format "[\\]\\(%s\\)"
+					          (regexp-quote texinfo-close-quote))
+				          start (point))))
 
-                                 (progn (while (and (setq possible-delim (search-forward
-                                                                          texinfo-close-quote
-                                                                          (min (point-max) (+ (point) limit))
-                                                                          t))
-                                                    (= (or (char-before (match-beginning 0)) 0) ?\\)))
-                                        possible-delim)
-		                 (setq str-end (match-beginning 0)
-			               str (buffer-substring-no-properties str-start str-end)))
-		          (and (cl-oddp (- (count-matches (regexp-quote open-match-string)
-						          start (point))
-				           ;; Subtract any backslash quoted delimiters
-				           (count-matches
-				            (format "[\\]\\(%s\\)"
-					            (regexp-quote open-match-string))
-				            start (point))))
-		               ;; Move back one char in case point is on a
-		               ;; closing delimiter char to ensure it is not
-		               ;; backslash quoted and so the right delimiter is matched.
-                               ;; Find the matching closing delimiter
-                               (progn (while (and (setq possible-delim
-                                                        (search-forward open-match-string
-                                                                        (min (point-max) (+ (point) limit))
-                                                                        t))
-                                                  (= (or (char-before (match-beginning 0)) 0) ?\\)))
-                                      possible-delim)
-		               (setq str-end (match-beginning 0))
-		               (setq str (buffer-substring-no-properties str-start str-end))))
+                             (progn (while (and (setq possible-delim (search-forward
+                                                                      texinfo-close-quote
+                                                                      (min (point-max) (+ (point) limit))
+                                                                      t))
+                                                (= (or (char-before (match-beginning 0)) 0) ?\\)))
+                                    possible-delim)
+		             (setq str-end (match-beginning 0)
+			           in-str t))
+		      (and (cl-oddp (- (count-matches (regexp-quote open-match-string)
+						      start (point))
+				       ;; Subtract any backslash quoted delimiters
+				       (count-matches
+				        (format "[\\]\\(%s\\)"
+					        (regexp-quote open-match-string))
+				        start (point))))
+		           ;; Move back one char in case point is on a
+		           ;; closing delimiter char to ensure it is not
+		           ;; backslash quoted and so the right delimiter is matched.
+                           ;; Find the matching closing delimiter
+                           (progn (while (and (setq possible-delim
+                                                    (search-forward open-match-string
+                                                                    (min (point-max) (+ (point) limit))
+                                                                    t))
+                                              (= (or (char-before (match-beginning 0)) 0) ?\\)))
+                                  possible-delim)
+		           (setq str-end (match-beginning 0)
+		                 in-str t)))
 
-	                ;; Ignore if more than `max-lines' matched
-	                (when (and str
-			           (or (null max-lines)
-			               (and (integerp max-lines)
-				            ;; When computing the number of lines in
-				            ;; the string match, ignore any leading and
-				            ;; trailing newlines.  This allows for
-				            ;; opening and closing quotes to be on
-				            ;; separate lines, useful with multi-line
-				            ;; strings.
-				            (< (hypb:string-count-matches
-				                "\n" (string-trim str))
-				               max-lines))))
-                          (cl-return-from :result
-		            (if range-flag
-		                (list str str-start str-end)
-		              t)))))))))))))))
+	            (when (and in-str str-start str-end)
+                      (cl-return-from :result
+		        (if range-flag
+                            (if (or (null str-start) (zerop str-start))
+		                (list nil (point) (point))
+                              (list in-str str-start str-end))
+		          in-str)))))))))))))
 
 (defun hypb:indirect-function (obj)
   "Return the function at the end of OBJ's function chain.
@@ -1434,6 +1525,10 @@ Without file, the banner is prepended to the current buffer."
 ;;; ************************************************************************
 ;;; Private variables
 ;;; ************************************************************************
+
+(defvar hypb:in-string-cache (make-hash-table :test 'eq)
+  "Key: buffer, Value: (tick (range1) (range2) ...)
+Where each range is ((start . end) . is-in-string).")
 
 (define-button-type 'hyperbole-banner)
 
