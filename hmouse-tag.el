@@ -667,36 +667,36 @@ pressed in an appropriate buffer and has moved the cursor to the selected
 buffer."
 
   (interactive)
-  (unless (and (fboundp 'find-library)
-	       ;; Handle Emacs Lisp `require', `load', and `autoload' clauses.
-	       (let ((opoint (point))
-		     type
-		     name
-		     lib)
-		 (setq lib (and (search-backward "\(" nil t)
-				(or
-				 ;; load with a filename
-				 (looking-at "(\\(load\\)[ \t]+\\(\\)\"\\([^][() \t\n\r`'\"]+\\)")
-				 ;; autoload or require with a name and filename
-				 (looking-at "(\\(autoload\\|require\\)[ \t]+'\\([^][() \t\n\r`'\"]+\\)[ \t\n\r]+\"\\([^][() \t\n\r`'\"]+\\)")
-				 ;; require without a separate filename
-				 (looking-at "(\\(require\\)\\(\\)[ \t]+'\\([^][() \t\n\r`'\"]+\\)"))))
-		 (goto-char opoint)
-		 (when lib
-		   (setq type (match-string-no-properties 1)
-			 name (match-string-no-properties 2)
-			 lib (match-string-no-properties 3))
-		   (hpath:display-buffer (current-buffer))
-		   (find-library lib)
-		   (goto-char (point-min))
-		   (when (equal type "autoload")
-		     ;; Ignore defgroup matches
-		     (if (re-search-forward
-			  (format "^[; \t]*(def.[^r][^ \t\n\r]*[ \t]+%s[ \t\n\r]" (regexp-quote name))
-			  nil t)
-			 (goto-char (match-beginning 0))
-		       (error "(smart-lisp): Found autoload library but no definition for `%s'" name)))
-		   t)))
+  (unless
+      ;; Handle Emacs Lisp `require', `load', and `autoload' clauses.
+      (let ((opoint (point))
+	    type
+	    name
+	    lib)
+	(setq lib (and (search-backward "\(" nil t)
+		       (or
+			;; load with a filename
+			(looking-at "(\\(load\\)[ \t]+\\(\\)\"\\([^][() \t\n\r`'\"]+\\)")
+			;; autoload or require with a name and filename
+			(looking-at "(\\(autoload\\|require\\)[ \t]+'\\([^][() \t\n\r`'\"]+\\)[ \t\n\r]+\"\\([^][() \t\n\r`'\"]+\\)")
+			;; require without a separate filename
+			(looking-at "(\\(require\\)\\(\\)[ \t]+'\\([^][() \t\n\r`'\"]+\\)"))))
+	(goto-char opoint)
+	(when lib
+	  (setq type (match-string-no-properties 1)
+		name (match-string-no-properties 2)
+		lib (match-string-no-properties 3))
+	  (hpath:display-buffer (current-buffer))
+	  (find-library lib)
+	  (goto-char (point-min))
+	  (when (equal type "autoload")
+	    ;; Ignore defgroup matches
+	    (if (re-search-forward
+		 (format "^[; \t]*(def.[^r][^ \t\n\r]*[ \t]+%s[ \t\n\r]" (regexp-quote name))
+		 nil t)
+		(goto-char (match-beginning 0))
+	      (error "(smart-lisp): Found autoload library but no definition for `%s'" name)))
+	  t))
     (smart-lisp-find-tag nil show-doc)))
 
 (defun smart-lisp-find-tag (&optional tag show-doc)
@@ -726,7 +726,7 @@ Use `hpath:display-buffer' to show definition or documentation."
 		 ;; Ignore unbound symbols if displaying doc.
 		 (t nil)))
 
-	  ((and elisp-flag (fboundp 'find-function-noselect)
+	  ((and elisp-flag
 		(let ((result (smart-lisp-bound-symbol-def tag-sym)))
 		  (when (and (cdr result)
 			     (hpath:display-buffer (car result)))
@@ -1256,25 +1256,25 @@ This indicates that TAG is serving as a hyperlink button."
 The Lisp identifier is either listed in a tags table or is a
 known Emacs Lisp identifier."
   (interactive)
-  (unless (and (fboundp 'find-library)
-	       ;; Handle Emacs Lisp `require', `load', and `autoload' clauses.
-	       (let ((lib)
-		     (opoint (point)))
-		 (setq lib (and (re-search-backward "[()]" nil t)
-				(looking-at (concat
-					     "(\\(require\\|load\\|autoload\\)"
-					     "[ \t]+.*['\"]"
-					     "\\([^][() \t\n\r`'\"]+\\)"))))
-		 (goto-char opoint)
-		 (when lib
-		   (ignore-errors (and (find-library-name lib) t)))))
+  (unless
+      ;; Handle Emacs Lisp `require', `load', and `autoload' clauses.
+      (let ((lib)
+	    (opoint (point)))
+	(setq lib (and (re-search-backward "[()]" nil t)
+		       (looking-at (concat
+				    "(\\(require\\|load\\|autoload\\)"
+				    "[ \t]+.*['\"]"
+				    "\\([^][() \t\n\r`'\"]+\\)"))))
+	(goto-char opoint)
+	(when lib
+	  (ignore-errors (and (find-library-name lib) t))))
     ;; Cache tag value
     (setq hkey-value (smart-lisp-at-tag-p t))
     (let* ((tag hkey-value)
 	   (tag-sym (intern-soft tag)))
       (cond ((and (fboundp 'ert-test-boundp) (ert-test-boundp tag-sym))
 	     tag)
-	    ((when (and (fboundp 'find-function-noselect) tag-sym)
+	    ((when tag-sym
 	       (let ((result (smart-lisp-bound-symbol-def tag-sym)))
 		 (when (cdr result)
 		   tag))))

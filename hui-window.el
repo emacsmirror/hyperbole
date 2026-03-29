@@ -302,10 +302,7 @@ and release to register a diagonal drag.")
 
 (defun assist-key-modeline-click-left-edge ()
   "Default function run on an Assist Mouse Key click at a modeline left edge."
-  (if (fboundp 'last)
-      (switch-to-buffer (car (last (buffer-list))))
-    (let ((buffers (buffer-list)))
-      (switch-to-buffer (nth (1- (length buffers)) buffers)))))
+  (switch-to-buffer (car (last (buffer-list)))))
 
 (defun action-key-modeline-click-right-edge ()
   "Default function run on an Action Mouse Key click at a modeline right edge."
@@ -813,9 +810,7 @@ Adds a window below this one.
 Beep and print message if the window cannot be split further."
   (interactive)
   (condition-case ()
-      (if (fboundp 'split-window-quietly)
-	  (split-window-quietly nil)
-	(split-window-vertically nil))
+      (split-window-vertically nil)
     (error (beep)
 	   (message "(hmouse-horizontal-action-drag): Can't split the window further."))))
 
@@ -836,7 +831,7 @@ Beep and print message if the sole window which cannot be deleted."
 	     (setq w-or-f (frame-selected-window w-or-f)))
 	   (when (and (eq w-or-f window) (window-valid-p window))
 	     window)))
-	((fboundp 'window-edges)
+	(t
 	 (let* ((edges (window-edges window))
 		(w-xmin (nth 0 edges))
 		(w-ymin (nth 1 edges))

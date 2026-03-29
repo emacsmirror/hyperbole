@@ -1022,9 +1022,7 @@ frame instead."
      ((and (frame-parameter frame 'drag-with-mode-line)
            (window-at-side-p window 'bottom))
       ;; Drag frame when the window is on the bottom of its frame.
-      (if (fboundp 'mouse-drag-frame-move) ;; From Emacs 28
-          (mouse-drag-frame-move start-event)
-        (mouse-drag-frame start-event 'move))))))
+      (mouse-drag-frame-move start-event)))))
 
 (defun hkey-debug (pred pred-value hkey-action)
   "Display a message with the context and values from Smart Key activation."
@@ -1532,9 +1530,7 @@ the position (not below another application's window)."
   ;; 26 and above.  For prior versions, the ordering of the frames
   ;; returned is not guaranteed, so the frame whose window is returned
   ;; may not be the uppermost.
-  (let* ((top-to-bottom-frames (if (fboundp 'frame-list-z-order)
-				   (frame-list-z-order)
-				 (frame-list)))
+  (let* ((top-to-bottom-frames (frame-list-z-order))
 	 (pos-x (car position))
 	 (pos-y (cdr position))
 	 edges left top right bottom
