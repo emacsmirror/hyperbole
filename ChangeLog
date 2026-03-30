@@ -1,5 +1,16 @@
 2026-03-29  Bob Weiner  <rsw@gnu.org>
 
+* hypb.el (hypb:in-string-cache): Move Private Variable definitions to precede
+    code so they are not referenced before they are defined.
+
+* hsys-org.el (org-id-find): Declare as external to quiet byte-compiler.
+
+* hywiki.el (hywiki-delimited-p): Fix to eliminate nil sent as arg to
+    'matching-paren'.
+
+* hypb.el (hypb:in-string-p): Temporarily widen each non-kotl-mode buffer to
+    ensure can see entire string.
+
 * hywiki.el (consult--async-*): Silence byte-compiler warnings with function
     declarations.
 

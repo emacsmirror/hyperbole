@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     2-Jul-16 at 14:54:14
-;; Last-Mod:     28-Mar-26 at 13:22:56 by Bob Weiner
+;; Last-Mod:     29-Mar-26 at 22:57:14 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -70,6 +70,7 @@
 
 (declare-function org-babel-get-src-block-info "org-babel")
 (declare-function org-fold-show-context "org-fold")
+(declare-function org-id-find "org-id")
 (declare-function org-link-open-from-string "ol")
 (declare-function outline-on-heading-p "outline")
 
