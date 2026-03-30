@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    19-Sep-91 at 20:45:31
-;; Last-Mod:     29-Mar-26 at 19:42:04 by Bob Weiner
+;; Last-Mod:     28-Mar-26 at 13:02:39 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -173,14 +173,8 @@ If on the :ID: definition line, display a message about how to copy the uuid.
 If the referenced location is found, return non-nil.  Match to uuids
 only to prevent false matches."
   (when (featurep 'org-id)
-    (let* ((org-link (org--link-at-point))
-           (id (or org-link
-                   ;; Could be a uuid or some other form of id
-                   (thing-at-point 'symbol t)))
-           (bounds (when id
-                     (if org-link
-                         (org--bounds-of-link-at-point)
-                       (bounds-of-thing-at-point 'symbol))))
+    (let* ((id (thing-at-point 'symbol t)) ;; Could be a uuid or some other form of id
+           (bounds (when id (bounds-of-thing-at-point 'symbol)))
 	   (start (when bounds (car bounds)))
 	   (end   (when bounds (cdr bounds)))
 	   m)

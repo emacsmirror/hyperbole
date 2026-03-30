@@ -1,8 +1,5 @@
 2026-03-29  Bob Weiner  <rsw@gnu.org>
 
-* hibtypes.el (org-id): Fix to handle Org id links if not routed through
-    'smart-org'.
-
 * hywiki.el (consult--async-*): Silence byte-compiler warnings with function
     declarations.
 
