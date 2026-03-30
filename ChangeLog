@@ -1,5 +1,16 @@
 2026-03-29  Bob Weiner  <rsw@gnu.org>
 
+* hywiki.el (consult--async-*): Silence byte-compiler warnings with function
+    declarations.
+
+* hypb.el (hypb:in-string-cache-disable, hypb:in-string-cache): Add.
+          (hypb:in-string-check): Rename from 'hypb:in-string-p' so can be
+    a subfunction call when cache lookup fails.  Rewrite 'max-lines' handling
+    to use in-buffer ranges rather than strings.
+          (hypb:in-string-p): Rewrite to utilize caching.
+	  (hypb:narrow-to-max-lines): Add for potential future use and to archive
+    prior code from 'hypb:in-string-p'.
+
 * kotl/kview.el (kview:id-counter-set): Add.
   kotl/kotl-mode.el (kotl-mode:kill-tree): Add support for sending 0 as
     the prefix arg to say kill from the root of the outline tree all the
@@ -92,6 +103,13 @@
     variables.
     (hywiki-org-to-heading-instance): Use with-suppressed-warnings for
     obsolete org-show-entry.
+
+* hywiki.el (hywiki-delimited-p): Fix to return non-nil only when the (car range)
+    is non-nil since range may be '(nil <point> <point>) when a cached entry is
+    found.
+            (hywiki-get-page-files): Fix to test whether 'hywiki-directory' exists
+    before calling 'make-directory' to avoid its call to 'make-directory-insernal'
+    triggering an error when debugging.
 
 2026-03-24  Bob Weiner  <rsw@gnu.org>
 

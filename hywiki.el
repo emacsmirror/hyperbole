@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:     22-Mar-26 at 12:53:00 by Bob Weiner
+;; Last-Mod:     29-Mar-26 at 19:15:13 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -173,6 +173,11 @@
 (declare-function bookmark-completing-read "bookmark" (prompt &optional default))
 (declare-function bookmark-location "bookmark" (bookmark-name-or-record))
 (declare-function consult--async-command "ext:consult")
+(declare-function consult--async-process "ext:consult")
+(declare-function consult--async-refresh-timer "ext:consult")
+(declare-function consult--async-sink "ext:consult")
+(declare-function consult--async-split "ext:consult")
+(declare-function consult--async-throttle "ext:consult")
 (declare-function consult--lookup-member "ext:consult")
 (declare-function consult--read "ext:consult")
 (declare-function hsys-org-at-tags-p "hsys-org")
@@ -2160,11 +2165,10 @@ Works even when called from non-Org buffers."
 Include: (), {}, <>, [] and \"\" (double quotes).  Exclude Org links
 and radio targets.
 
-Range is limited to the previous, current and next lines, as HyWikiWord
-references are limited to two lines maximum.
-
-If no such range, return \\='(nil nil).
-This includes the delimiters: (), {}, <>, [] and \"\" (double quotes)."
+Range is a list of (start end) positions or if no such range, then \\='(nil
+nil).  It is limited to the previous, current and next lines, as HyWikiWord
+references are limited to two lines maximum.  The range is inclusive of the
+delimiters: (), {}, <>, [] and \"\" (double quotes)."
   (save-excursion
     (save-restriction
       ;; Limit balanced pair checks to previous through next lines for
@@ -3024,7 +3028,8 @@ not contain a directory path or returns nil."
   "Return the list of existing HyWiki page file names.
 These must end with `hywiki-file-suffix'."
   (when (stringp hywiki-directory)
-    (make-directory hywiki-directory t)
+    (unless (file-directory-p hywiki-directory)
+      (make-directory hywiki-directory t))
     (when (file-readable-p hywiki-directory)
       (directory-files
        hywiki-directory nil (concat "^" hywiki-word-regexp
@@ -4088,10 +4093,11 @@ a HyWikiWord at point."
 	(if (and wikiword (string-match "[ \t\n\r\f]+\\'" wikiword))
 	    ;; Strip any trailing whitespace
 	    (setq wikiword-trimmed (substring wikiword 0 (match-beginning 0))
-		  range-trimmed (list wikiword-trimmed (nth 1 range)
-				      (- (nth 2 range) (length (match-string
-								0 wikiword)))))
-	  (setq range-trimmed range))
+		  range-trimmed (when (car range)
+                                  (list wikiword-trimmed (nth 1 range)
+				        (- (nth 2 range) (length (match-string
+								  0 wikiword))))))
+	  (setq range-trimmed (when (car range) range)))
 	(and range-trimmed
 	     ;; Ensure closing delimiter is a match for the opening one
 	     (or (eq (matching-paren (char-before (nth 1 range)))
