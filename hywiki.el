@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:     29-Mar-26 at 19:15:13 by Bob Weiner
+;; Last-Mod:     29-Mar-26 at 22:28:44 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -4088,24 +4088,27 @@ a HyWikiWord at point."
       (let* ((range (or (hypb:in-string-p nil t)
 			(hargs:delimited "[\[<\(\{]" "[\]\}\)\>]" t t t)))
 	     (wikiword (car range))
+             (str-start (nth 1 range))
+             (str-end (nth 2 range))
 	     range-trimmed
 	     wikiword-trimmed)
 	(if (and wikiword (string-match "[ \t\n\r\f]+\\'" wikiword))
 	    ;; Strip any trailing whitespace
 	    (setq wikiword-trimmed (substring wikiword 0 (match-beginning 0))
 		  range-trimmed (when (car range)
-                                  (list wikiword-trimmed (nth 1 range)
-				        (- (nth 2 range) (length (match-string
+                                  (list wikiword-trimmed str-start
+				        (- str-end (length (match-string
 								  0 wikiword))))))
 	  (setq range-trimmed (when (car range) range)))
-	(and range-trimmed
+	(and range-trimmed str-start str-end
 	     ;; Ensure closing delimiter is a match for the opening one
-	     (or (eq (matching-paren (char-before (nth 1 range)))
-		     (char-after (nth 2 range)))
+	     (or (eq (matching-paren (or (char-before str-start)
+                                         0))
+		     (char-after str-end))
 		 ;; May be string quotes where matching-paren returns nil.
-		 (and (eq (char-before (nth 1 range))
-			  (char-after (nth 2 range)))
-		      (eq (char-syntax (char-before (nth 1 range))) ?\")))
+		 (and (eq (char-before str-start)
+			  (char-after str-end ))
+		      (eq (char-syntax (char-before str-start)) ?\")))
 	     range-trimmed)))))
 
 (defun hywiki-word-face-at-p (&optional pos)

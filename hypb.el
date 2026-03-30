@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     6-Oct-91 at 03:42:38
-;; Last-Mod:     29-Mar-26 at 19:02:41 by Bob Weiner
+;; Last-Mod:     29-Mar-26 at 22:47:54 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -124,6 +124,16 @@ Also active in any Decendent modes of those listed.")
 (defconst hypb:mail-address-regexp
   "\\([_a-zA-Z0-9][-_a-zA-Z0-9.!@+%]*@[-_a-zA-Z0-9.!@+%]+\\.[a-zA-Z0-9][-_a-zA-Z0-9]+\\)\\($\\|[^a-zA-Z0-9@%]\\)"
   "Regexp with group 1 matching an Internet email address.")
+
+;;; ************************************************************************
+;;; Private variables
+;;; ************************************************************************
+
+(defvar hypb:in-string-cache (make-hash-table :test 'eq)
+  "Key: buffer, Value: (tick (range1) (range2) ...)
+Where each range is ((start . end) . is-in-string).")
+
+(define-button-type 'hyperbole-banner)
 
 ;;; ************************************************************************
 ;;; Public functions
@@ -771,56 +781,61 @@ Quoting conventions recognized are:
           ;; Cache match
           (setq cache-match match))
 
-        ;; When no matching cache entry, search for a string match
-        (let* ((entry (or cache-match
-                          ;; This ignores max-lines, so final result of
-                          ;; whether in a string with max-lines may differ
-                          ;; from what this returns.  This allows its result
-                          ;; to be used in the cache.
-                          ;; To call it with the buffer narrowed to
-                          ;; according to `max-lines', use:
-                          ;; (hypb:narrow-to-max-lines max-lines #'hypb:in-string-check t)
-                          (hypb:in-string-check t)))
-               (in-str (nth 0 entry))
-               (str-start (nth 1 entry))
-               (str-end (nth 2 entry)))
-          (cond ((and (not match) (not hypb:in-string-cache-disable))
-                 ;; Add the new range into the buffer's cache
-                 (setcdr cache-entry (cons entry (cdr cache-entry))))
-                (match)
-                ((not entry)
-                 (setq hypb:in-string-cache-disable t)
-                 (error "(hypb:in-string-p): buffer = %s; cache-match = %S; entry = %s; point = %d"
-                        (current-buffer) cache-match entry (point))))
-	                ;; Ignore if more than `max-lines' matched
-	  (when (and in-str str-start str-end
-		     (or (null max-lines)
-			 (and (integerp max-lines)
-			      ;; When computing the number of lines in
-			      ;; the string match, ignore any leading and
-			      ;; trailing newlines.  This allows for
-			      ;; opening and closing quotes to be on
-			      ;; separate lines, useful with multi-line
-			      ;; strings.
-                              (let (newlines)
-				(or (< (setq newlines (count-matches "\n" str-start str-end))
-				       max-lines)
-                                    (< (save-excursion
-                                         (- newlines
-                                            (progn (goto-char str-start)
-                                                   (if (looking-at "[\n\r\f\t ]+")
-                                                       (count-matches "\n" (match-beginning 0) (match-end 0))
-                                                     0))
-                                            (progn (goto-char str-end)
-                                                   (if (zerop (skip-chars-backward "\n\r\f\t "))
-                                                       0
-                                                     (count-matches "\n" (point) str-end)))))
-				       max-lines))))))
-	    (if range-flag
-                (cond ((zerop str-start)
-		       (list nil (point) (point)))
-                      (in-str (list (buffer-substring-no-properties str-start str-end) str-start str-end)))
-	      in-str)))))))
+        ;; Buffer might be narrowed in which case full string would not be
+        ;; seen.  If not `kotl-mode', temporarily widen the buffer.
+        (save-restriction
+          (unless (derived-mode-p 'kotl-mode)
+            (widen))
+          ;; When no matching cache entry, search for a string match
+          (let* ((entry (or cache-match
+                            ;; This ignores max-lines, so final result of
+                            ;; whether in a string with max-lines may differ
+                            ;; from what this returns.  This allows its result
+                            ;; to be used in the cache.
+                            ;; To call it with the buffer narrowed to
+                            ;; according to `max-lines', use:
+                            ;; (hypb:narrow-to-max-lines max-lines #'hypb:in-string-check t)
+                            (hypb:in-string-check t)))
+                 (in-str (nth 0 entry))
+                 (str-start (nth 1 entry))
+                 (str-end (nth 2 entry)))
+            (cond ((and (not match) (not hypb:in-string-cache-disable))
+                   ;; Add the new range into the buffer's cache
+                   (setcdr cache-entry (cons entry (cdr cache-entry))))
+                  (match)
+                  ((not entry)
+                   (setq hypb:in-string-cache-disable t)
+                   (error "(hypb:in-string-p): buffer = %s; cache-match = %S; entry = %s; point = %d"
+                          (current-buffer) cache-match entry (point))))
+	    ;; Ignore if more than `max-lines' matched
+	    (when (and in-str str-start str-end
+		       (or (null max-lines)
+			   (and (integerp max-lines)
+			        ;; When computing the number of lines in
+			        ;; the string match, ignore any leading and
+			        ;; trailing newlines.  This allows for
+			        ;; opening and closing quotes to be on
+			        ;; separate lines, useful with multi-line
+			        ;; strings.
+                                (let (newlines)
+				  (or (< (setq newlines (count-matches "\n" str-start str-end))
+				         max-lines)
+                                      (< (save-excursion
+                                           (- newlines
+                                              (progn (goto-char str-start)
+                                                     (if (looking-at "[\n\r\f\t ]+")
+                                                         (count-matches "\n" (match-beginning 0) (match-end 0))
+                                                       0))
+                                              (progn (goto-char str-end)
+                                                     (if (zerop (skip-chars-backward "\n\r\f\t "))
+                                                         0
+                                                       (count-matches "\n" (point) str-end)))))
+				         max-lines))))))
+	      (if range-flag
+                  (cond ((zerop str-start)
+		         (list nil (point) (point)))
+                        (in-str (list (buffer-substring-no-properties str-start str-end) str-start str-end)))
+	        in-str))))))))
 
 (defun hypb:narrow-to-max-lines (max-lines func &rest args)
   "Narrow buffer to +/- (+ 1 MAX-LINES) including current line.
@@ -1521,16 +1536,6 @@ Without file, the banner is prepended to the current buffer."
 			       (- o ?0)))))
 	  oct-str)
     dec-num))
-
-;;; ************************************************************************
-;;; Private variables
-;;; ************************************************************************
-
-(defvar hypb:in-string-cache (make-hash-table :test 'eq)
-  "Key: buffer, Value: (tick (range1) (range2) ...)
-Where each range is ((start . end) . is-in-string).")
-
-(define-button-type 'hyperbole-banner)
 
 (provide 'hypb)
 
