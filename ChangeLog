@@ -1,3 +1,10 @@
+2026-04-05  Bob Weiner  <rsw@gnu.org>
+
+* hyrolo.el (hyrolo-hdr-to-first-line-p): Handle black lines and @loc> after
+    two lines of 'hyrolo-hdr-regexp'.
+            (hyrolo-outline-next-visible-heading): Fix moving when in a file
+    hdr but not at the start of a line.
+
 2026-04-04  Bob Weiner  <rsw@gnu.org>
 
 * hyrolo.el (hyrolo-grep-file): Change to call 'hyrolo-set-display-buffer'

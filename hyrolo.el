@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     7-Jun-89 at 22:08:29
-;; Last-Mod:      4-Apr-26 at 23:14:26 by Bob Weiner
+;; Last-Mod:      5-Apr-26 at 00:34:28 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1974,13 +1974,20 @@ return nil.
 The header includes lines matching both `hyrolo-hdr-regexp' and
 `hbut:source-prefix'."
   (let ((opoint (point)))
+    ;; Skip back over blank lines
+    (when (looking-at "^[ \t]*$")
+      (skip-chars-backward " \t\n\r"))
     (beginning-of-line)
     (if (if (zerop (% (count-matches hyrolo-hdr-regexp (point-min) (point)) 2))
-            (if (looking-at hyrolo-hdr-regexp)
-                ;; Now at the start of the first line of a file header
-                t
-              ;; Not within a file header
-              nil)
+            (cond ((looking-at hyrolo-hdr-regexp)
+                   ;; Now at the start of the first line of a file header
+                   t)
+                  ((looking-at hbut:source-prefix)
+                   (forward-line -1)
+                   (hyrolo-hdr-to-first-line-p))
+                  (t
+                   ;; Not within a file header
+                   nil))
           ;; If in a file header, past the first line
           (and (hyrolo-hdr-move-after-p)
 	       (re-search-backward hyrolo-hdr-regexp nil t 2)
@@ -2007,10 +2014,12 @@ The header includes lines matching both `hyrolo-hdr-regexp' and
   "If point is within a file header, move past the hdr and blank lines.
 Return non-nil if point moves, else return nil."
   (let ((opoint (point))
+        in-file-hdr-first-line
 	result)
     (when (save-excursion
 	    (beginning-of-line)
-	    (zerop (% (count-matches hyrolo-hdr-regexp (point-min) (point)) 2)))
+	    (setq in-file-hdr-first-line
+                  (zerop (% (count-matches hyrolo-hdr-regexp (point-min) (line-beginning-position)) 2))))
       (cond ((save-excursion
 	       (beginning-of-line)
 	       (looking-at hyrolo-hdr-regexp))
@@ -2030,7 +2039,7 @@ Return non-nil if point moves, else return nil."
 	     (forward-line 1))))
 
     ;; Within a file header pair, past the first header line
-    (when (and (= (point) opoint)
+    (when (and (not in-file-hdr-first-line)
                (progn (beginning-of-line)
                       (re-search-forward hyrolo-hdr-regexp nil t)))
       (setq result t)
@@ -2593,17 +2602,16 @@ A match buffer header is one that starts with `hyrolo-hdr-regexp'."
           ;; Move to the start of -argth previous entry when arg < 0
 	  (while (and (not (bobp)) (< arg 0))
             (unless (bobp)
-	      (if (hyrolo-hdr-to-first-line-p)
-                  (setq found t)
-	        (hyrolo-funcall-match #'to-prev-entry nil t)
-	        (when (< (point) last-point)
-		  (setq found t))))
+	      (hyrolo-hdr-to-first-line-p)
+	      (hyrolo-funcall-match #'to-prev-entry nil t)
+	      (when (< (point) last-point)
+		(setq found t)))
 	    (setq arg (1+ arg)))
 
           ;; Move to the start of argth next entry when arg > 0
 	  (while (and (not (eobp)) (> arg 0))
 	    (unless (eobp)
-	      (if (hyrolo-hdr-to-first-line-p)
+	      (if (hyrolo-hdr-move-after-p)
 		  (setq found t)
 		(hyrolo-funcall-match #'to-next-entry)
 		(when (< last-point (point))
@@ -2913,9 +2921,9 @@ Optionally, also set `hyrolo-file-list' to PATH-LIST when non-nil."
 ;;; ************************************************************************
 
 (defun hyrolo-add-match (regexp start end headline-only)
-  "Add to `hyrolo-display-buffer' an entry matching REGEXP from current region.
-The region is between START to END.  Point moves to the end of the inserted
-entry."
+  "Add a REGEXP match entry from START to END in curr buffer to display buffer.
+Then highlight the matches within the entry.  Point moves to the end of the
+inserted entry in the match display buffer, `hyrolo-display-buffer'."
   (let* ((display-buf (get-buffer-create hyrolo-display-buffer))
 	 (start-point (with-current-buffer display-buf (point)))
          end-point)
@@ -2930,7 +2938,7 @@ entry."
         ;; sub-levels in the entry as well.  If an entry does not have a
         ;; starting delimiter, then it must be a single line entry; add the
         ;; text property to the first character of the line in this case.
-        (if (not (looking-at hyrolo-entry-regexp))
+        (if (looking-at hyrolo-hdr-regexp)
             (add-text-properties (point) (1+ (point)) '(:hyrolo-level t))
           (while (re-search-forward hyrolo-entry-regexp end-point t)
             (add-text-properties (match-beginning hyrolo-entry-group-number)
