@@ -1,7 +1,87 @@
+2026-04-05  Bob Weiner  <rsw@gnu.org>
+
+* hyrolo.el (hyrolo-hdr-to-first-line-p): Handle black lines and @loc> after
+    two lines of 'hyrolo-hdr-regexp'.  Move by visible lines.
+            (hyrolo-outline-next-visible-heading): Fix moving when in a file
+    hdr but not at the start of a line.  Fix forward and backward movement
+    when entries are hidden.
+            (hyrolo-hdr-to-first-line-p, hyrolo-hdr-move-after-p): Return t
+    only if point is left on a visible, non-hidden character to fix next
+    and previous entry movement.
+            (hyrolo-hdr-in-p): Rewrite with 'hyrolo-hdr-to-first-line-p'
+    instead of 'hyrolo-hdr-move-after-p' since that can return nil when it
+    leaves point at a hidden/invisible position.
+
+2026-04-04  Bob Weiner  <rsw@gnu.org>
+
+* hyrolo.el (hyrolo-grep-file): Change to call 'hyrolo-set-display-buffer'
+  to set display buffer as current.
+            (hyrolo-set-display-buffer): Remove set and restore of major-mode;
+    handle these separately so done only once per file processed.
+            (hyrolo-set-display-buffer-mode): Add to separate from the above
+    function.
+            (hyrolo--cache-post-display-buffer): Rename to
+    'hyrolo--post-display-buffer' and set major mode.
+            (hyrolo-cache-set-major-mode): Rename to
+    'hyrolo--pre-display-buffer' and leave out setting of major mode
+    as that may come from the cache or from a current source buffer.
+            (hyrolo-source-buffer): Add for quick access to the source buffer
+    or file associated with (point) within the HyRolo display buffer.
+            (hyrolo-grep-file): Rename 'actual-buf' to 'src-buf'.
+	    (defvar-local): Stop using since sets local values in buffers that
+    do not use the variable.  Use 'defvar' and 'setq-local' to set in a single
+    buffer.
+           (hyrolo-hdr-move-after-p): Fix to handle when point is not at the
+    start of file header line but is within the header.
+           (hyrolo-to-entry-beginning): Remove unneeded call to 'hyrolo-hdr-in-p'.
+           (hyrolo-hdr-move-after-p): Remove duplicate (beginning-of-line) calls.
+	   (hyrolo-hdr-to-first-line-p): Return nil if point is at the start of
+    the first line of a file header and therefore it doesn't move. Optimize and
+    clarify cases.
+  hui-mouse.el (smart-hyrolo): Fix to handle change in above function.
+
+
+2026-04-03  Bob Weiner  <rsw@gnu.org>
+
+* hyrolo.el (hyrolo-cache-set-major-mode): Add setting of
+    'hyrolo-entry-regexp' when in 'markdown-mode'.  Used in
+    'hyrolo-add-match'.
+
+* hproperty.el (hproperty:length): Add and use in HyRolo.
+
 2026-04-02  Mats Lidell  <matsl@gnu.org>
 
 * hsys-org.el (hsys-org-id-find-advice): Fix docstring has wrong usage
     of unescaped single quotes and make first line a sentence.
+
+2026-03-31  Bob Weiner  <rsw@gnu.org>
+
+* hyrolo.el (hyrolo-outline-next-visible-heading): Optimize performance in
+    large files.
+            (hyrolo-display-format-function, hyrolo-bbdb-entry-format):
+    Change from a function of one arg, a HyRolo entry, to two args, start and
+    end, the region to modify for display.
+            (hyrolo-display-format): Define to avoid lambda creation on
+    display of each HyRolo entry.
+            (hyrolo-display-format-function): Use above function as value.
+	    (hyrolo-add-match): Rewrite to insert directly into display-buffer
+    without generating Lisp-level strings.  Also add :hyrolo-level = t property
+    around any leading outline delimiter (excluding trailing whitespace) across
+    all heading levels within a matching entry.  For single line, non-delimited
+    entries on the first char of the entry.  Use this to speed movement between
+    entries in the HyRolo match buffer.
+            (hyrolo-cache-set-major-mode): Delay mode hooks since only using
+    the mode to get 'outline-regexp' and these can be time-consuming.
+
+2026-03-30  Bob Weiner  <rsw@gnu.org>
+
+* hyrolo.el (hyrolo-grep-file): Fix *word* at bol causing the search to
+    get stuck.  Always move at least one char past the end of an entry.
+            (hyrolo-to-entry-end): Rewrite for speed by only moving past the
+    header if at the beginning of the buffer.  Remove lambda generation to
+    eliminate function generation on every call.
+            (hyrolo-next-match): Speed up a bit with local vars and add in-line
+    comments to explain logic.
 
 2026-03-30  Mats Lidell  <matsl@gnu.org>
 
@@ -12,6 +92,8 @@
     removing one tree.
 
 2026-03-29  Bob Weiner  <rsw@gnu.org>
+
+* man/hyperbole.texi (Testing): Update from 200 to 660 automated test cases.
 
 * hypb.el (hypb:in-string-cache): Move Private Variable definitions to precede
     code so they are not referenced before they are defined.

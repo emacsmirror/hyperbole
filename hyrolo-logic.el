@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    13-Jun-89 at 22:57:33
-;; Last-Mod:     22-Nov-25 at 07:56:55 by Bob Weiner
+;; Last-Mod:      4-Apr-26 at 14:15:14 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -196,7 +196,7 @@ Return the number of evaluations of SEXP that match entries."
 		 ((list in-bufs)))))
 	 (total-matches (apply '+ result)))
     (unless (or count-only (= total-matches 0))
-      (hyrolo--cache-post-display-buffer)
+      (hyrolo--post-display-buffer)
       (hyrolo-display-matches display-buf))
   total-matches))
 

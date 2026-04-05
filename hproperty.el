@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Aug-92
-;; Last-Mod:     31-Jan-26 at 22:44:11 by Bob Weiner
+;; Last-Mod:      3-Apr-26 at 19:36:41 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -414,6 +414,16 @@ VALUE is optional; if omitted, use the first char-property at POS with PROPERTY.
 	    end   (hproperty:char-property-end   pos property val)))
     (unless (or (null start) (null end) (= start end))
       (cons start end))))
+
+;;;###autoload
+(defun hproperty:length-p (prop value)
+  "Return the length of the region from point where PROP has VALUE.
+Return nil if no match at point."
+  (let ((start (point))
+        end)
+    (and (equal (get-text-property start prop) value)
+         (setq end (next-single-property-change start prop nil (point-max)))
+         (- end start))))
 
 (defun hproperty:overlay-range (pos property &optional value)
   "Return the first overlay range (start . end) at POS where PROPERTY = VALUE.

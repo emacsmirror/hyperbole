@@ -7,7 +7,7 @@
 @c Author:       Bob Weiner
 @c
 @c Orig-Date:     6-Nov-91 at 11:18:03
-@c Last-Mod:     23-Mar-26 at 19:00:37 by Bob Weiner
+@c Last-Mod:     29-Mar-26 at 23:39:42 by Bob Weiner
 
 @c %**start of header (This is for running Texinfo on a region.)
 @setfilename hyperbole.info
@@ -30,7 +30,7 @@
 @set txicodequoteundirected
 @set txicodequotebacktick
 
-@set UPDATED March 23, 2026
+@set UPDATED March 29, 2026
 @set UPDATED-MONTH March 2026
 @set EDITION 9.0.2pre
 @set VERSION 9.0.2pre
@@ -171,7 +171,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.</P>
 
 <PRE>
 Edition 9.0.2pre
-Printed March 23, 2026.
+Printed March 29, 2026.
 
   Published by the Free Software Foundation, Inc.
   Author:    Bob Weiner
@@ -213,7 +213,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 @example
 Edition 9.0.2pre
-March 23, 2026 @c AUTO-REPLACE-ON-SAVE
+March 29, 2026 @c AUTO-REPLACE-ON-SAVE
 
 
   Published by the Free Software Foundation, Inc.
@@ -9550,7 +9550,7 @@ personal @file{~/.emacs} file.  For example:
 @node Testing,  , Default Hyperbole Bindings, Hyperbole Key Bindings
 @section Testing
 
-Hyperbole includes over 200 automated test cases in the @file{test/}
+Hyperbole includes over 660 automated test cases in the @file{test/}
 subdirectory.  You can run all of them by moving to the Hyperbole home
 directory in a Posix shell and run @code{make test-all} or @code{make
 test} to run just non-interactive tests.  If any tests fail, you can

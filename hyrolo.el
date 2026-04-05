@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     7-Jun-89 at 22:08:29
-;; Last-Mod:     14-Mar-26 at 19:38:41 by Mats Lidell
+;; Last-Mod:      5-Apr-26 at 02:34:12 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -121,7 +121,7 @@
 (declare-function markdown-live-preview-remove-on-kill "ext:markdown-mode")
 (declare-function markdown-make-gfm-checkboxes-buttons "ext:markdown-mode")
 ;; This next function is replaced by `hyrolo-outline-function'
-;; within `hyrolo-cache-set-major-mode'.
+;; within `hyrolo--pre-display-buffer'.
 (declare-function markdown-outline-level "ext:markdown-mode")
 (declare-function markdown-pipe-at-bol-p "ext:markdown-mode")
 (declare-function markdown-remove-gfm-checkbox-overlays "ext:markdown-mode")
@@ -169,6 +169,12 @@ their standard major modes perform.")
 
 (defvar hyrolo-display-buffer "*HyRolo*"
   "Buffer used to display set of last matching rolo entries.")
+
+(defvar hyrolo-source-buffer
+  "The source file associated with (point) within the HyRolo display buffer.
+Each time a `hyrolo-mode' movement command is run within the HyRolo display
+  buffer, this is set to the proper source buffer for (point) based on the
+  prior source file header, i.e. @loc> file-pathname.")
 
 ;; Need to define the group before the defcustom variable so moved it here.
 (defgroup hyperbole-hyrolo nil
@@ -262,11 +268,13 @@ Default appearance is MM/DD/YYYY.  See documentation of the function
   :type 'string
   :group 'hyperbole-hyrolo)
 
-(defvar hyrolo-display-format-function
-  (lambda (entry)
-    (concat (replace-regexp-in-string "[ \t\n\r]+\\'" "" entry nil t) "\n"))
-  "*Function of one argument which modifies the string for display.
-The argument is a rolo entry string.")
+(defun hyrolo-display-format (_start _end)
+  "Delete whitespace at end of HyRolo display buffer region _START and _END."
+  (delete-region (point) (progn (skip-chars-backward " \t\n\r") (point)))
+  (insert "\n"))
+
+(defvar hyrolo-display-format-function #'hyrolo-display-format
+  "*Function of 2 args, start and end, that formats the region for display.")
 
 (defcustom hyrolo-email-format "%s\t\t<%s>"
   "Format string to use when adding an entry with e-mail addr from a mail msg.
@@ -890,7 +898,7 @@ variable `hyrolo-file-list'."
 		  (- max-matches num-matched)
 		(+ max-matches num-matched)))))
     (unless (or count-only (= total-matches 0))
-      (hyrolo--cache-post-display-buffer)
+      (hyrolo--post-display-buffer)
       (unless (or no-display inserting)
 	(hyrolo-display-matches display-buf)))
     (when (called-interactively-p 'interactive)
@@ -1201,20 +1209,28 @@ or NAME is invalid, return nil."
 Raise an error if a match is not found."
   (interactive)
   (hyrolo-verify)
-  (let ((start (point))
-	(case-fold-search t)
-	(prior-regexp-search (stringp hyrolo-match-regexp)))
-    (when (and prior-regexp-search (looking-at hyrolo-match-regexp))
+  (let* ((regexp hyrolo-match-regexp)
+         (start (point))
+         (case-fold-search t)
+	 (prior-regexp-search (stringp hyrolo-match-regexp)))
+
+    ;; Ensure a search regexp has been stored previously or error
+    (unless prior-regexp-search
+      (error (substitute-command-keys
+              "(hyrolo-next-match): Use {\\[hyrolo-grep-or-fgrep]} to do a search first")))
+
+    ;; If already at a match, move past it to ensure we find the next one
+    (when (looking-at regexp)
       (goto-char (match-end 0)))
-    (if (and prior-regexp-search (re-search-forward hyrolo-match-regexp nil t))
-	(progn (goto-char (match-beginning 0))
-	       ;; !! TODO: Next line temporary until `reveal-mode' works properly
-	       (hyrolo-outline-show-subtree))
+
+    ;; Search for the next match
+    (if (re-search-forward regexp nil t)
+        (progn
+          (goto-char (match-beginning 0))
+	  ;; !! TODO: Next line temporary until `reveal-mode' works properly
+          (hyrolo-outline-show-subtree))
       (goto-char start)
-      (if prior-regexp-search
-	  (error
-	   "(hyrolo-next-match): No following matches for \"%s\"" hyrolo-match-regexp)
-	(error (substitute-command-keys "(hyrolo-next-match): Use {\\[hyrolo-grep-or-fgrep]} to do a search first"))))))
+      (error "(hyrolo-next-match): No following matches for \"%s\"" regexp))))
 
 (define-derived-mode hyrolo-outline-mode outline-mode "HyRoloOtl"
   "Set major mode for HyRolo searches of outlines with selective display.
@@ -1347,12 +1363,17 @@ Raise an error if a match is not found."
     (error "(HyRolo): Invalid files used in `hyrolo-file-list'; see the *HyRolo Errors* buffer")))
 
 (defun hyrolo-set-display-buffer ()
-  "Set display buffer."
+  "For current command, set the HyRolo display buffer as the curr buffer.
+Make it writeable and return the display buffer."
   (prog1 (set-buffer (get-buffer-create hyrolo-display-buffer))
-    (unless (or (eq major-mode 'hyrolo-mode)
-		(hyperb:stack-frame '(hyrolo-yank)))
-      (hyrolo-mode))
     (setq buffer-read-only nil)))
+
+(defun hyrolo-set-display-buffer-mode ()
+  "With curr buffer *HyRolo*, set its mode to `hyrolo-mode'."
+  (with-current-buffer hyrolo-display-buffer
+    (unless (or (eq major-mode 'hyrolo-mode)
+	        (hyperb:stack-frame '(hyrolo-yank)))
+      (hyrolo-mode))))
 
 ;;;###autoload
 (defun hyrolo-let-file-list (symbol value)
@@ -1664,10 +1685,14 @@ Return number of matching entries found."
 	 (not (get-file-buffer (expand-file-name bbdb-file)))))
     (hyrolo-grep-file hyrolo-file-or-buf regexp max-matches count-only)))
 
-(defun hyrolo-bbdb-entry-format (bbdb-entry)
-  "Format for a BBDB-ENTRY."
-  (let ((v (read bbdb-entry)))
-    (format "* %s: %s: <%s>\n" (elt v 1) (elt v 0) (car (elt v 7)))))
+(defun hyrolo-bbdb-entry-format (start end)
+  "Format for display the bbdb entry region of START to END in match buffer."
+  ;; Caller will return to prior point
+  (goto-char start)
+  (save-restriction
+    (narrow-to-region start end)
+    (let ((v (read)))
+      (format "* %s: %s: <%s>\n" (elt v 1) (elt v 0) (car (elt v 7))))))
 
 ;;; ************************************************************************
 ;;; Google Contacts Integration
@@ -1737,6 +1762,8 @@ Return number of matching entries found."
       (insert "No result.")
     (print contacts (get-buffer-create "*contacts-data*"))
     (dolist (contact contacts)
+      ;; `child' variable is necessary or the Google code will fail; don't
+      ;; remove.  -- rsw, 2026-04-04
       (let* ((child nil)
 	     (name-value (nth 0 (xml-get-children contact 'gd:name)))
              (fullname (xml-node-child-string (nth 0 (xml-get-children name-value 'gd:fullName))))
@@ -1939,14 +1966,37 @@ Return number of matching entries found."
   (hyrolo-grep-file hyrolo-file-or-buf (regexp-quote string) max-matches count-only headline-only))
 
 (defun hyrolo-hdr-to-first-line-p ()
-  "If point is within a file header, go to its first line.
-Return t in such cases.  Otherwise, don't move and return nil.
+  "If point is within a file header, go to the start of its first line.
+If point moves, return t; otherwise, don't move and return nil.  Thus,
+if point is already at the start of the first line ofr the file header,
+return nil.
 
 The header includes lines matching both `hyrolo-hdr-regexp' and
 `hbut:source-prefix'."
-  (when (and (hyrolo-hdr-move-after-p)
-	     (re-search-backward hyrolo-hdr-regexp nil t 2))
-    t))
+  (let ((opoint (point)))
+    ;; Skip back over blank lines
+    (when (looking-at "^[ \t]*$")
+      (skip-chars-backward " \t\n\r"))
+    (forward-visible-line 0)
+    (if (if (zerop (% (count-matches hyrolo-hdr-regexp (point-min) (point)) 2))
+            (cond ((looking-at hyrolo-hdr-regexp)
+                   ;; Now at the start of the first line of a file header
+                   t)
+                  ((looking-at hbut:source-prefix)
+                   (forward-visible-line -1)
+                   (hyrolo-hdr-to-first-line-p))
+                  (t
+                   ;; Not within a file header
+                   nil))
+          ;; If in a file header, past the first line
+          (and (hyrolo-hdr-move-after-p)
+	       (re-search-backward hyrolo-hdr-regexp nil t 2)
+               (progn (forward-visible-line 0)
+                      t)))
+        (and (/= (point) opoint)
+             (not (outline-invisible-p)))
+      (goto-char opoint)
+      nil)))
 
 (defun hyrolo-hdr-to-last-line-p ()
   "If point is within a file header, go to its last line.
@@ -1960,45 +2010,53 @@ The header includes lines matching both `hyrolo-hdr-regexp' and
 
 (defun hyrolo-hdr-in-p ()
   "If point is within a file header, return t, else nil."
-  (save-excursion (hyrolo-hdr-move-after-p)))
+  (save-excursion (when (looking-at hyrolo-hdr-regexp)
+                    (goto-char (1+ (point))))
+                  (hyrolo-hdr-to-first-line-p)))
 
 (defun hyrolo-hdr-move-after-p ()
   "If point is within a file header, move past the hdr and blank lines.
 Return non-nil if point moves, else return nil."
   (let ((opoint (point))
+        in-file-hdr-first-line
 	result)
-    (if (save-excursion
-	  (beginning-of-line)
-	  (zerop (% (count-matches hyrolo-hdr-regexp (point-min) (point)) 2)))
-	(cond ((save-excursion
-		(beginning-of-line)
-		(looking-at hyrolo-hdr-regexp))
-	       (setq result t)
-	       ;; On the first line of a file header pair
+    (when (save-excursion
+	    (beginning-of-line)
+	    (setq in-file-hdr-first-line
+                  (zerop (% (count-matches hyrolo-hdr-regexp (point-min) (line-beginning-position)) 2))))
+      (cond ((save-excursion
 	       (beginning-of-line)
-	       (when (re-search-forward hyrolo-hdr-regexp nil t 2)
-		 (forward-line 1)
-		 (when (looking-at hbut:source-prefix)
-		   ;; @loc> line after header
-		   (forward-line 1))))
-	      ((save-excursion
-		(beginning-of-line)
-		(looking-at hbut:source-prefix))
-	       ;; @loc> line after header
-	       (setq result t)
-	       (forward-line 1)))
-      ;; Within a file header pair,
-      (beginning-of-line)
-      (when (re-search-forward hyrolo-hdr-regexp nil t)
-	(setq result t)
-	(forward-line 1)
-	(when (looking-at hbut:source-prefix)
-	  ;; @loc> line after header
-	  (forward-line 1))))
+	       (looking-at hyrolo-hdr-regexp))
+	     (setq result t)
+	     ;; On the first line of a file header pair
+	     (beginning-of-line)
+	     (when (re-search-forward hyrolo-hdr-regexp nil t 2)
+	       (forward-line 1)
+	       (when (looking-at hbut:source-prefix)
+		 ;; @loc> line after header
+		 (forward-line 1))))
+	    ((save-excursion
+	       (beginning-of-line)
+	       (looking-at hbut:source-prefix))
+	     ;; @loc> line after header
+	     (setq result t)
+	     (forward-line 1))))
+
+    ;; Within a file header pair, past the first header line
+    (when (and (not in-file-hdr-first-line)
+               (progn (beginning-of-line)
+                      (re-search-forward hyrolo-hdr-regexp nil t)))
+      (setq result t)
+      (forward-line 1)
+      (when (looking-at hbut:source-prefix)
+	;; @loc> line after header
+	(forward-line 1)))
+
     (if (> (point) opoint)
 	(progn (while (looking-at-p "^[ \t]*$")
 		 (forward-line 1))
-	       result)
+               (unless (outline-invisible-p)
+	         result))
       (goto-char opoint)
       nil)))
 
@@ -2027,7 +2085,7 @@ Return number of matching entries found."
   ;; Save pattern as last rolo search expression.
   (setq hyrolo-match-regexp pattern)
   ;;
-  (let ((actual-buf)
+  (let ((src-buf)
 	;; Temporarily disable hywiki-mode for speed
 	(hywiki-mode)
 	;; Temporarily disable magit-auto-revert-mode-enable-in-buffers for hyrolo
@@ -2035,9 +2093,9 @@ Return number of matching entries found."
 	(after-change-major-mode-hook
 	 (remove 'magit-auto-revert-mode-enable-in-buffers after-change-major-mode-hook)))
     (if (and (or (null max-matches) (eq max-matches t) (integerp max-matches))
-	     (or (setq actual-buf (hyrolo-buffer-exists-p hyrolo-file-or-buf))
+	     (or (setq src-buf (hyrolo-buffer-exists-p hyrolo-file-or-buf))
 		 (when (file-exists-p hyrolo-file-or-buf)
-		   (setq actual-buf (hyrolo-find-file-noselect hyrolo-file-or-buf)))))
+		   (setq src-buf (hyrolo-find-file-noselect hyrolo-file-or-buf)))))
 	(let ((num-found 0)
 	      (incl-hdr t)
 	      (stuck-negative-point 0)
@@ -2050,7 +2108,7 @@ Return number of matching entries found."
 		  ((< max-matches 0)
 		   (setq incl-hdr nil
 			 max-matches (- max-matches)))))
-	  (set-buffer actual-buf)
+	  (set-buffer src-buf)
 
 	  ;; Allow for initial asterisks being regexp-quoted in
 	  ;; string-match below.
@@ -2080,6 +2138,8 @@ Return number of matching entries found."
 			     match-end)
 			(while (and (or (null max-matches) (< num-found max-matches))
 				    (funcall hyrolo-next-match-function search-pattern))
+	                  (when (and (not count-only) (zerop num-found))
+                            (hyrolo--pre-display-buffer src-buf))
 			  (setq match-end (point))
 			  ;; If no entry delimiters found, just return
 			  ;; the single line of the match alone.
@@ -2095,14 +2155,15 @@ Return number of matching entries found."
 				(when (not (eobp))
 				  (forward-line 1))
 			      (goto-char (1+ (point)))))
+
 			  (when (<= (point) match-end)
 			    ;; Stuck looping without moving to next entry,
 			    ;; probably *word* at beginning of a line.
 			    (throw 'stuck (- (point))))
 			  (or count-only
 			      (when (and (zerop num-found) incl-hdr)
-				(let* ((src (or (hypb:buffer-file-name actual-buf)
-						actual-buf))
+				(let* ((src (or (hypb:buffer-file-name src-buf)
+						src-buf))
 				       (src-line
 					(format
 					 (concat (if (boundp 'hbut:source-prefix)
@@ -2110,15 +2171,21 @@ Return number of matching entries found."
 						   "@loc> ")
 						 "%s")
 					 (prin1-to-string src))))
-				  (set-buffer hyrolo-display-buffer)
+                                  (hyrolo-set-display-buffer)
 				  (goto-char (point-max))
-				  (if hdr-pos
-				      (progn
-					(insert-buffer-substring
-					 actual-buf (car hdr-pos) (cdr hdr-pos))
-					(insert src-line "\n\n"))
-				    (insert (format hyrolo-hdr-format src-line)))
-				  (set-buffer actual-buf))))
+                                  (let ((start (point)))
+				    (if hdr-pos
+				        (progn
+					  (insert-buffer-substring
+					   src-buf (car hdr-pos) (cdr hdr-pos))
+					  (insert src-line "\n\n"))
+				      (insert (format hyrolo-hdr-format src-line)))
+                                    ;; Add the `:hyrolo-level' property on
+                                    ;; the first char in the first line of
+                                    ;; the file header so outline movement
+                                    ;; commands stop there.
+                                    (add-text-properties start (1+ start) '(:hyrolo-level t)))
+				  (set-buffer src-buf))))
 			  (setq num-found (1+ num-found))
 			  (or count-only
 			      ;; Highlight original pattern only here,
@@ -2135,13 +2202,13 @@ Return number of matching entries found."
 		(save-excursion
 		  (goto-char (point-max))
 		  (newline))))
-	    (hyrolo--cache-major-mode actual-buf))
+            (hyrolo--cache-major-mode src-buf))
 	  (when (< stuck-negative-point 0)
-	    (pop-to-buffer actual-buf)
+	    (pop-to-buffer src-buf)
 	    (goto-char (- stuck-negative-point))
 	    (error "(hyrolo-grep-file): Stuck looping in buffer \"%s\" at position %d"
 		   (buffer-name) (point)))
-	  (hyrolo-kill-buffer actual-buf)
+	  (hyrolo-kill-buffer src-buf)
 	  num-found)
       0)))
 
@@ -2398,10 +2465,7 @@ forward through the buffer."
   (save-excursion
     (beginning-of-line)
     (hyrolo-funcall-match
-     (lambda ()
-       (if (looking-at outline-regexp)
-	   (hyrolo-outline-level)
-	 0))
+     (lambda () (hyrolo-outline-level))
      backward-flag)))
 
 (defun hyrolo-outline-get-next-sibling ()
@@ -2513,54 +2577,61 @@ A heading is one that starts with an `outline-regexp' match.
 A match buffer header is one that starts with `hyrolo-hdr-regexp'."
   (interactive "p")
   (let ((orig-arg arg)
-	(found-heading-p)
+	(found)
 	(opoint (point))
 	(last-point (point)))
     (condition-case nil
-	(progn
-	  (if (< arg 0)
-	      (beginning-of-line)
-	    (end-of-line))
+        (cl-flet ((to-prev-entry ()
+                    (while (progn (unless (eobp)
+                                    (hyrolo-to-entry-beginning))
+                                  (setq last-point (point))
+                                  (goto-char
+                                   (or (previous-single-property-change
+                                        (point) :hyrolo-level)
+                                       (point)))
+                                  (while (and (< (point) last-point)
+				              (outline-invisible-p)
+	                                      (progn
+                                                (forward-visible-line 0)
+                                                (hyrolo-hdr-to-first-line-p)
+                                                (> (point)
+                                                   (hyrolo-to-entry-beginning))))))))
+                  (to-next-entry ()
+                    (while (progn
+                             ;; Skip over hidden sub-entries in tree
+                             (goto-char (max (line-end-position)
+                                             (hyrolo-to-entry-end)))
+                             (setq last-point (point))
+                             (goto-char
+                              (or (next-single-property-change
+                                   (point) :hyrolo-level)
+                                  (point)))
+                             (while (and (> (point) last-point)
+				         (outline-invisible-p)
+	                                 (progn
+                                           (end-of-visible-line)
+                                           (hyrolo-hdr-to-first-line-p)
+                                           (< (point) (hyrolo-to-entry-end)))))))))
+          ;; Move to the start of -argth previous entry when arg < 0
 	  (while (and (not (bobp)) (< arg 0))
-	    (while (and (not (bobp))
-			(progn (hyrolo-hdr-to-first-line-p)
-			       (setq last-point (point))
-			       (hyrolo-funcall-match
-				(lambda ()
-				  (re-search-backward
-				   (concat "^\\(" outline-regexp "\\)")
-				   nil t))
-				nil t))
-			(when (< (point) last-point)
-			  (setq found-heading-p t))
-			(setq last-point (point))
-			(progn (hyrolo-hdr-to-first-line-p)
-			       (outline-invisible-p))))
+            (unless (bobp)
+	      (hyrolo-hdr-to-first-line-p)
+	      (hyrolo-funcall-match #'to-prev-entry nil t)
+	      (when (< (point) last-point)
+		(setq found t)))
 	    (setq arg (1+ arg)))
+
+          ;; Move to the start of argth next entry when arg > 0
 	  (while (and (not (eobp)) (> arg 0))
-	    (while (and (not (eobp))
-			(or (and (hyrolo-hdr-move-after-p)
-				 (if (outline-invisible-p (point))
-				     ;; Skip any invisible heading at point
-				     (progn
-				       (goto-char (min (1+ (point)) (point-max)))
-				       nil)
-				   (setq found-heading-p t)))
-			    (progn (setq last-point (point))
-				   (hyrolo-funcall-match
-				    (lambda ()
-				      (re-search-forward
-				       (concat "^\\(" outline-regexp "\\)")
-				       nil t)))
-				   (and (< last-point (point))
-					(setq last-point (point))
-					(if (outline-invisible-p (match-beginning 0))
-					    ;; Skip any invisible heading at point
-					    (goto-char (min (1+ (point)) (point-max)))
-					  (setq found-heading-p t)))))
-			(not found-heading-p)))
+	    (unless (eobp)
+	      (if (hyrolo-hdr-move-after-p)
+		  (setq found t)
+		(hyrolo-funcall-match #'to-next-entry)
+		(when (< last-point (point))
+		  (setq found t))))
 	    (setq arg (1- arg)))
-	  (cond (found-heading-p
+
+	  (cond (found
 		 (beginning-of-line))
 		((> orig-arg 0)
 		 (goto-char (point-max)))
@@ -2572,7 +2643,7 @@ A match buffer header is one that starts with `hyrolo-hdr-regexp'."
       (error (if (>= arg 0)
 		 (hyrolo-hdr-move-after-p)
 	       (hyrolo-hdr-to-first-line-p))))
-    (and found-heading-p (/= (point) opoint) t)))
+    (and found (/= (point) opoint) t)))
 
 (defun hyrolo-outline-previous-heading ()
   "Move to the previous (possibly invisible) heading line."
@@ -2723,7 +2794,7 @@ begins or nil if not found."
 	  ;; If this is the first line of an entry, then don't treat
 	  ;; '/' characters as parent/child delimiters but just as
 	  ;; part of the entry first line text.
-	  (unless (setq line-and-col (get-text-property 0 'hyrolo-name-entry name))
+	  (unless (setq line-and-col (get-text-property 0 :hyrolo-name-entry name))
 	    ;; Otherwise, navigate through parent-child records.
 	    (while (string-match "\\`[^\]\[<>{}\"]*/" name)
 	      (setq end (1- (match-end 0))
@@ -2761,7 +2832,7 @@ begins or nil if not found."
 					 (progn (back-to-indentation)
 						(looking-at (regexp-quote name))))
 				 (when (or line-and-col
-					   (setq line-and-col (get-text-property 0 'hyrolo-name-entry name)))
+					   (setq line-and-col (get-text-property 0 :hyrolo-name-entry name)))
 				   ;; this is a whole line to find except for leading whitespace
 				   (setq line (car line-and-col)
 					 col-num (cdr line-and-col))
@@ -2780,8 +2851,8 @@ begins or nil if not found."
 With optional prefix arg INCLUDE-SUB-ENTRIES non-nil, move to the
 beginning of the highest ancestor level.  Return final point."
   (interactive "P")
-  (when (hyrolo-hdr-in-p)
-    (hyrolo-hdr-to-first-line-p))
+  ;; If in file hdr, move to the start of its first line
+  (hyrolo-hdr-to-first-line-p)
   (if include-sub-entries
       (unless (<= (hyrolo-outline-level) 1)
 	(hyrolo-outline-up-heading 80))
@@ -2863,20 +2934,35 @@ Optionally, also set `hyrolo-file-list' to PATH-LIST when non-nil."
 ;;; ************************************************************************
 
 (defun hyrolo-add-match (regexp start end headline-only)
-  "Add in `hyrolo-display-buffer' an entry matching REGEXP from current region.
-Entry is inserted before point.  The region is between START to END."
-  (let ((hyrolo-buf (current-buffer))
-	(hyrolo-entry (buffer-substring start end))
-	opoint)
-    (set-buffer (get-buffer-create hyrolo-display-buffer))
-    (setq opoint (point))
-    (insert (funcall hyrolo-display-format-function hyrolo-entry))
-    (unless (hyperb:stack-frame '(hyrolo-yank))
-      (hyrolo-highlight-matches regexp opoint
-				(if headline-only
-				    (save-excursion (goto-char opoint) (line-end-position))
-				  (point))))
-    (set-buffer hyrolo-buf)))
+  "Add a REGEXP match entry from START to END in curr buffer to display buffer.
+Then highlight the matches within the entry.  Point moves to the end of the
+inserted entry in the match display buffer, `hyrolo-display-buffer'."
+  (let* ((display-buf (get-buffer-create hyrolo-display-buffer))
+	 (start-point (with-current-buffer display-buf (point)))
+         end-point)
+    (insert-into-buffer display-buf start end)
+    (with-current-buffer display-buf
+      (setq end-point (point))
+      (funcall hyrolo-display-format-function start-point (point))
+      (save-excursion
+        (goto-char start-point)
+        ;; If entries have starting level delimiters, add the :hyrolo-level
+        ;; text property to each level delimiter char; do this for all
+        ;; sub-levels in the entry as well.  If an entry does not have a
+        ;; starting delimiter, then it must be a single line entry; add the
+        ;; text property to the first character of the line in this case.
+        (if (looking-at hyrolo-hdr-regexp)
+            (add-text-properties (point) (1+ (point)) '(:hyrolo-level t))
+          (while (re-search-forward hyrolo-entry-regexp end-point t)
+            (add-text-properties (match-beginning hyrolo-entry-group-number)
+                                 (match-end hyrolo-entry-group-number)
+                                 '(:hyrolo-level t)))))
+      (unless (hyperb:stack-frame '(hyrolo-yank))
+        (hyrolo-highlight-matches regexp start-point
+				  (if headline-only
+				      (save-excursion (goto-char start-point)
+                                                      (line-end-position))
+				    (point)))))))
 
 (defun hyrolo-any-file-type-problem-p ()
   "Return t if any file from `hyrolo-file-list' has an unusable format.
@@ -3119,9 +3205,9 @@ Any non-nil value returned is a cons of (<entry-name> . <entry-source>)."
 				 (looking-at "\\( ?[^ \t\n\r]+\\)+"))
 			 (setq entry-name (match-string-no-properties 0)
 			       entry-line (buffer-substring-no-properties line-start line-end))
-			 ;; Add a text-property of 'hyrolo-name-entry with
+			 ;; Add a text-property of :hyrolo-name-entry with
 			 ;; value of (entry-line . current-column) to entry-name.
-			 (put-text-property 0 1 'hyrolo-name-entry
+			 (put-text-property 0 1 :hyrolo-name-entry
 					    (cons entry-line col-num)
 					    entry-name)
 			 (cons entry-name entry-source)))
@@ -3286,12 +3372,13 @@ than the selected one."
   (pop-to-buffer buffer other-window-flag))
 
 (defun hyrolo-move-forward (func &rest args)
-  "Move forward past any file header and apply FUNC to ARGS.
+  "Move forward past any file header when `bobp' and apply FUNC to ARGS.
 If FUNC is a lambda (not a function symbol), then temporarily
 narrow to the current match buffer before applying FUNC.
 
 Return final point."
-  (hyrolo-hdr-to-last-line-p)
+  (when (bobp)
+    (hyrolo-hdr-to-last-line-p))
   (condition-case nil
       (hyrolo-funcall-match
        (lambda ()
@@ -3309,14 +3396,16 @@ This is actually either the level specified in `outline-heading-alist'
 or else the number of characters matched by `outline-regexp' minus
 trailing periods and whitespace.
 
-Point must be at the beginning of a heading line and a regexp match to
-`outline-regexp' must have been done prior to calling this.
+Point must be at the beginning of a heading line.
 
 This function is used for every file-type major-mode supported by HyRolo."
-  (or (cdr (assoc (match-string-no-properties 0) outline-heading-alist))
-      (when (hyrolo-hdr-in-p) 1)
-      (cond ((derived-mode-p 'kotl-mode)
+
+  (or (and outline-heading-alist (looking-at outline-regexp)
+           (cdr (assoc (match-string-no-properties 0) outline-heading-alist)))
+      (cond ((hproperty:length-p :hyrolo-level t))
+            ((derived-mode-p 'kotl-mode)
 	     (kcell-view:level))
+            ;; ((hyrolo-hdr-in-p) 1)
 	    ((looking-at hyrolo-hdr-and-entry-regexp)
 	     (length (match-string hyrolo-entry-group-number)))
 	    (t 0))))
@@ -3325,7 +3414,7 @@ This function is used for every file-type major-mode supported by HyRolo."
 ;;; Caching of buffer major-modes for use in HyRolo display match buffer
 ;;; ************************************************************************
 
-(defvar-local hyrolo--cache-loc-match-bounds '(1)
+(defvar hyrolo--cache-loc-match-bounds '(1)
   "Ordered list of the bounds of each matched buffer in Hyrolo display buffer.
 First entry represents the start of the first matched buffer and the
 remaining entries are the end points of each matched buffer with the
@@ -3336,27 +3425,27 @@ HyRolo display matches buffer.")
 ;; cache variable.
 (put 'hyrolo--cache-loc-match-bounds 'permanent-local t)
 
-(defvar-local hyrolo--cache-major-mode-indexes '(0)
+(defvar hyrolo--cache-major-mode-indexes '(0)
   "Ordered list of major-mode-indexes `hyrolo--cache-loc-match-bounds' positions.")
 (put 'hyrolo--cache-major-mode-indexes 'permanent-local t)
 
-(defvar-local hyrolo--cache-major-mode-index 1
+(defvar hyrolo--cache-major-mode-index 1
   "Next index value to use when caching buffer-local values.")
 (put 'hyrolo--cache-major-mode-index 'permanent-local t)
 
-(defvar-local hyrolo--cache-major-mode-to-index-hasht nil
+(defvar hyrolo--cache-major-mode-to-index-hasht nil
   "Hash table with `major-mode' name keys and integer major-mode index values.")
 (put 'hyrolo--cache-major-mode-to-index-hasht 'permanent-local t)
 
-(defvar-local hyrolo--cache-index-to-major-mode-hasht nil
+(defvar hyrolo--cache-index-to-major-mode-hasht nil
   "Hash table with integer major-mode index keys and `major-mode' values.")
 (put 'hyrolo--cache-index-to-major-mode-hasht 'permanent-local t)
 
 (defun hyrolo-cache-get-major-mode-from-pos (pos)
   "Get the `major-mode' associated with POS in the current HyRolo display buffer."
   (hyrolo--cache-get-major-mode-from-index
-   (nth (or (seq-position hyrolo--cache-loc-match-bounds pos (lambda (e pos) (< pos e)))
-	    (error "(hyrolo-cache-get-major-mode): pos=%d >= max display buffer pos=%d"
+   (nth (or (seq-position hyrolo--cache-loc-match-bounds pos (lambda (e pos) (<= pos e)))
+	    (error "(hyrolo-cache-get-major-mode): pos=%d > max display buffer pos=%d"
 		   pos (car hyrolo--cache-loc-match-bounds)))
 	hyrolo--cache-major-mode-indexes)))
 
@@ -3373,17 +3462,6 @@ Both positions may be nil if there are no matches yet found."
 	(list (nth (1- end-seq-pos) hyrolo--cache-loc-match-bounds)
 	      (nth end-seq-pos hyrolo--cache-loc-match-bounds))
       (list nil nil))))
-
-(defun hyrolo-cache-set-major-mode (pos)
-  "Set the `major-mode' for POS in the current HyRolo display buffer.
-Add `hyrolo-hdr-regexp' to `hyrolo-hdr-and-entry-regexp' and `outline-regexp'."
-  (funcall (hyrolo-cache-get-major-mode-from-pos pos))
-  (unless (string-prefix-p hyrolo-hdr-regexp hyrolo-hdr-and-entry-regexp)
-    (setq-local hyrolo-hdr-and-entry-regexp (concat hyrolo-hdr-prefix-regexp hyrolo-hdr-and-entry-regexp)))
-  (unless (string-prefix-p hyrolo-hdr-regexp outline-regexp)
-    (setq-local outline-regexp (concat hyrolo-hdr-prefix-regexp outline-regexp)))
-  (when (eq outline-level #'markdown-outline-level)
-    (setq-local outline-level #'hyrolo-outline-level)))
 
 (defun hyrolo-funcall-match (func &optional narrow-flag backward-flag)
   "Apply FUNC with no arguments to the entry at point.
@@ -3412,12 +3490,16 @@ proper major mode."
 		  (setq end (1- (or end (point-max))))
 		  (when narrow-flag
 		    (narrow-to-region start end))
-		  (let ((font-lock-mode))
-		    ;; (message "%s" (hyrolo-cache-get-major-mode-from-pos
-		    ;;	 	      (funcall (if backward-flag '1- '1+) start)))
-		    (if (and backward-flag (looking-at hyrolo-hdr-regexp))
-			(hyrolo-cache-set-major-mode (max (1- start) 1))
-		      (hyrolo-cache-set-major-mode (min (1+ start) (point-max))))
+		  ;; (message "%s" (hyrolo-cache-get-major-mode-from-pos
+		  ;;	 	      (funcall (if backward-flag '1- '1+) start)))
+		  (let ((font-lock-mode)
+                        (pos (if (and backward-flag (looking-at hyrolo-hdr-regexp))
+		                  (max (1- start) 1)
+		                (min (1+ start) (point-max)))))
+                    (save-excursion
+                      (goto-char pos)
+		      (hyrolo--pre-display-buffer))
+
 		    ;; Prevent Org and Outline minor modes from font-locking
 		    (setq font-lock-mode nil)
 		    (hyrolo--funcall-with-outline-regexp func)))
@@ -3427,20 +3509,19 @@ proper major mode."
 		  ;; Restore original restriction
 		  (narrow-to-region ostart oend))
 		;; Restore original mode and font-locking
-		(funcall omode)
+                (delay-mode-hooks
+		  (funcall omode))
 		(font-lock-mode (if ofont-lock 1 0))
 		(when (and (fboundp 'orgtbl-mode) orgtbl-mode)
 		  ;; Disable as overrides single letter keys
 		  (orgtbl-mode 0))
-		;; !! TODO: Need to leave point on a visible character or since
-		;; hyrolo uses reveal-mode, redisplay will rexpand
+		;; !! TODO: Need to leave point on a visible character or
+		;; since hyrolo uses reveal-mode, redisplay will re-expand
 		;; hidden entries to make point visible.
-		;; (hyrolo-back-to-visible-point)
-		;; This pause forces a window redisplay that maximizes the
-		;; entries displayed for any final location of point.
-		;; Comment it out for now and see how well movement
-		;; cmds work.
-		;; (sit-for 0.0001)
+		;; (hyrolo-back-to-visible-point) This pause forces a window
+		;; redisplay that maximizes the entries displayed for any
+		;; final location of point.  Comment it out for now and see
+		;; how well movement cmds work.  (sit-for 0.0001)
 		))))
       (hyrolo--funcall-with-outline-regexp func))))
 
@@ -3473,8 +3554,11 @@ prior to applying FUNC."
 		  (when narrow-flag
 		    (narrow-to-region start end))
 		  (goto-char start)
-		  (let ((font-lock-mode))
-		    (hyrolo-cache-set-major-mode (1+ start))
+		  (let ((font-lock-mode)
+                        (pos (1+ start)))
+                    (save-excursion
+                      (goto-char pos)
+		      (hyrolo--pre-display-buffer))
 		    (setq font-lock-mode nil) ;; Prevent Org mode from font-locking
 		    (hyrolo--funcall-with-outline-regexp func))))
 	    (when narrow-flag
@@ -3494,7 +3578,7 @@ prior to applying FUNC."
 	    ;; entries displayed for any final location of point.
 	    (sit-for 0.001)))
       (save-excursion
-	(hyrolo--funcall-with-outline-regexp func)))))
+        (hyrolo--funcall-with-outline-regexp func)))))
 
 (defun hyrolo--cache-get-major-mode-from-index (major-mode-index)
   "Return `major-mode' key from hash table entry with key MAJOR-MODE-INDEX.
@@ -3520,37 +3604,67 @@ Call whenever `hyrolo-display-buffer' is changed."
 		hyrolo--cache-major-mode-indexes (list 0)
 		hyrolo--cache-major-mode-index 1)))
 
-(defun hyrolo--cache-major-mode (matched-buf)
-  "Cache buffer `major-mode' for MATCHED-BUF with point in HyRolo display buffer.
-MATCHED-BUF must be a live buffer, not a buffer name.
+(defun hyrolo--cache-major-mode (src-buf)
+  "Cache buffer `major-mode' for SRC-BUF with point in HyRolo display buffer.
+SRC-BUF must be a live buffer, not a buffer name.
 
 Push (point-max) of `hyrolo-display-buffer' onto
 `hyrolo--cache-loc-match-bounds'.  Push hash table's index key to
-`hyrolo--cache-major-mode-indexes'.  Ensure MATCHED-BUF's
+`hyrolo--cache-major-mode-indexes'.  Ensure SRC-BUF's
 `major-mode' is stored in the hash table."
   (with-current-buffer hyrolo-display-buffer
     (unless (hash-table-p hyrolo--cache-major-mode-to-index-hasht)
       (hyrolo--cache-initialize))
-    (let* ((matched-buf-file-name (buffer-local-value 'buffer-file-name matched-buf))
-	   (matched-buf-major-mode (or (hyrolo-major-mode-from-file-name matched-buf-file-name)
-				       (buffer-local-value 'major-mode matched-buf)))
-	   (matched-buf-major-mode-name (symbol-name matched-buf-major-mode))
-	   (matched-buf-major-mode-index
-	    (gethash matched-buf-major-mode-name hyrolo--cache-major-mode-to-index-hasht)))
+    (let* ((src-buf-file-name (buffer-local-value 'buffer-file-name src-buf))
+	   (src-buf-major-mode (or (hyrolo-major-mode-from-file-name src-buf-file-name)
+				   (buffer-local-value 'major-mode src-buf)))
+	   (src-buf-major-mode-name (symbol-name src-buf-major-mode))
+	   (src-buf-major-mode-index
+	    (gethash src-buf-major-mode-name hyrolo--cache-major-mode-to-index-hasht)))
       (push (point-max) hyrolo--cache-loc-match-bounds)
-      (push (or matched-buf-major-mode-index hyrolo--cache-major-mode-index) hyrolo--cache-major-mode-indexes)
-      (unless matched-buf-major-mode-index
-	(puthash matched-buf-major-mode-name
+      (push (or src-buf-major-mode-index hyrolo--cache-major-mode-index) hyrolo--cache-major-mode-indexes)
+      (unless src-buf-major-mode-index
+	(puthash src-buf-major-mode-name
 		 hyrolo--cache-major-mode-index hyrolo--cache-major-mode-to-index-hasht)
-	(puthash hyrolo--cache-major-mode-index matched-buf-major-mode hyrolo--cache-index-to-major-mode-hasht)
+	(puthash hyrolo--cache-major-mode-index src-buf-major-mode hyrolo--cache-index-to-major-mode-hasht)
 	(setq-local hyrolo--cache-major-mode-index (1+ hyrolo--cache-major-mode-index))))))
 
-(defun hyrolo--cache-post-display-buffer ()
-  "Cache update to make after display buffer modifications are finished."
-  ;; Reverse both of the above lists to order them properly.
+(defun hyrolo--post-display-buffer ()
+  "Update the HyRolo display buffer after modifications are finished."
   (with-current-buffer hyrolo-display-buffer
+    (hyrolo-set-display-buffer-mode)
+    ;; Reverse both of the following lists to order them properly.
     (setq-local hyrolo--cache-loc-match-bounds   (nreverse hyrolo--cache-loc-match-bounds)
 		hyrolo--cache-major-mode-indexes (nreverse hyrolo--cache-major-mode-indexes))))
+
+(defun hyrolo--pre-display-buffer (&optional src-buf)
+  "Setup the HyRolo display buffer before modifications are made.
+Set its `major-mode' to be the same as optional SRC-BUF or if null, look up
+the `major-mode' from a cache.  Add `hyrolo-hdr-regexp' to
+`hyrolo-hdr-and-entry-regexp' and `outline-regexp'.  When `major-mode' is
+`markdown-mode', set `outline-level' and `hyrolo-entry-regexp'."
+  (with-current-buffer hyrolo-display-buffer
+
+    ;; Set `major-mode' to match `src-buf'
+    (if src-buf
+        (progn (delay-mode-hooks
+                 (funcall (buffer-local-value 'major-mode src-buf)))
+               ;; Set local `hyrolo-source-buffer' to be the source of
+               ;; entries to add
+               (setq-local hyrolo-source-buffer src-buf))
+      ;; Point may have moved, so `hyrolo-source-buffer' may not be set
+      ;; properly, so set the `major-mode' via a cache lookup based on
+      ;; (point).
+      (delay-mode-hooks
+        (funcall (hyrolo-cache-get-major-mode-from-pos (point)))))
+
+    (unless (string-prefix-p hyrolo-hdr-regexp hyrolo-hdr-and-entry-regexp)
+      (setq-local hyrolo-hdr-and-entry-regexp (concat hyrolo-hdr-prefix-regexp hyrolo-hdr-and-entry-regexp)))
+    (unless (string-prefix-p hyrolo-hdr-regexp outline-regexp)
+      (setq-local outline-regexp (concat hyrolo-hdr-prefix-regexp outline-regexp)))
+    (when (eq outline-level #'markdown-outline-level)
+      (setq-local outline-level #'hyrolo-outline-level
+                  hyrolo-entry-regexp "^\\([#\^L]+\\)\\([ \t\n\r]+\\)"))))
 
 (defun hyrolo--funcall-with-outline-regexp (func)
   "Call FUNC with `outline-regexp' temporarily set to support HyRolo file hdrs."
@@ -3768,7 +3882,7 @@ Also see the `reveal-auto-hide' variable."
 
 (defun hyrolo-show-post-command ()
   "Post command hook function to expand subtree if point is in invisible text.
-Used in the *HyRolo* display match buffer."
+Used in the HyRolo display buffer."
   (when (outline-invisible-p)
     (hyrolo-outline-show-subtree)))
 
