@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell <matsl@gnu.org>
 ;;
 ;; Orig-Date:    19-Jun-21 at 22:42:00
-;; Last-Mod:     14-Mar-26 at 15:23:53 by Mats Lidell
+;; Last-Mod:      5-Apr-26 at 02:24:43 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -825,7 +825,7 @@ optional DEPTH the number of sub cells are created to that depth."
     (should (get-char-property (point) 'invisible))))
 
 (defun hyrolo-tests--verify-not-hidden-line ()
-  "Verify that a line is hidden."
+  "Verify that a line is not hidden."
   (save-excursion
     (end-of-line)
     (should-not (get-char-property (point) 'invisible))))

@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     7-Jun-89 at 22:08:29
-;; Last-Mod:      5-Apr-26 at 00:34:28 by Bob Weiner
+;; Last-Mod:      5-Apr-26 at 02:34:12 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1977,13 +1977,13 @@ The header includes lines matching both `hyrolo-hdr-regexp' and
     ;; Skip back over blank lines
     (when (looking-at "^[ \t]*$")
       (skip-chars-backward " \t\n\r"))
-    (beginning-of-line)
+    (forward-visible-line 0)
     (if (if (zerop (% (count-matches hyrolo-hdr-regexp (point-min) (point)) 2))
             (cond ((looking-at hyrolo-hdr-regexp)
                    ;; Now at the start of the first line of a file header
                    t)
                   ((looking-at hbut:source-prefix)
-                   (forward-line -1)
+                   (forward-visible-line -1)
                    (hyrolo-hdr-to-first-line-p))
                   (t
                    ;; Not within a file header
@@ -1991,8 +1991,10 @@ The header includes lines matching both `hyrolo-hdr-regexp' and
           ;; If in a file header, past the first line
           (and (hyrolo-hdr-move-after-p)
 	       (re-search-backward hyrolo-hdr-regexp nil t 2)
-               t))
-        (/= (point) opoint)
+               (progn (forward-visible-line 0)
+                      t)))
+        (and (/= (point) opoint)
+             (not (outline-invisible-p)))
       (goto-char opoint)
       nil)))
 
@@ -2008,7 +2010,9 @@ The header includes lines matching both `hyrolo-hdr-regexp' and
 
 (defun hyrolo-hdr-in-p ()
   "If point is within a file header, return t, else nil."
-  (save-excursion (hyrolo-hdr-move-after-p)))
+  (save-excursion (when (looking-at hyrolo-hdr-regexp)
+                    (goto-char (1+ (point))))
+                  (hyrolo-hdr-to-first-line-p)))
 
 (defun hyrolo-hdr-move-after-p ()
   "If point is within a file header, move past the hdr and blank lines.
@@ -2051,7 +2055,8 @@ Return non-nil if point moves, else return nil."
     (if (> (point) opoint)
 	(progn (while (looking-at-p "^[ \t]*$")
 		 (forward-line 1))
-	       result)
+               (unless (outline-invisible-p)
+	         result))
       (goto-char opoint)
       nil)))
 
@@ -2584,9 +2589,13 @@ A match buffer header is one that starts with `hyrolo-hdr-regexp'."
                                    (or (previous-single-property-change
                                         (point) :hyrolo-level)
                                        (point)))
-                                  (forward-line 0)
-                                  (and (< (point) last-point)
-				       (outline-invisible-p)))))
+                                  (while (and (< (point) last-point)
+				              (outline-invisible-p)
+	                                      (progn
+                                                (forward-visible-line 0)
+                                                (hyrolo-hdr-to-first-line-p)
+                                                (> (point)
+                                                   (hyrolo-to-entry-beginning))))))))
                   (to-next-entry ()
                     (while (progn
                              ;; Skip over hidden sub-entries in tree
@@ -2597,8 +2606,12 @@ A match buffer header is one that starts with `hyrolo-hdr-regexp'."
                               (or (next-single-property-change
                                    (point) :hyrolo-level)
                                   (point)))
-                             (and (> (point) last-point)
-				  (outline-invisible-p))))))
+                             (while (and (> (point) last-point)
+				         (outline-invisible-p)
+	                                 (progn
+                                           (end-of-visible-line)
+                                           (hyrolo-hdr-to-first-line-p)
+                                           (< (point) (hyrolo-to-entry-end)))))))))
           ;; Move to the start of -argth previous entry when arg < 0
 	  (while (and (not (bobp)) (< arg 0))
             (unless (bobp)

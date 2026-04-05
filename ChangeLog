@@ -1,9 +1,16 @@
 2026-04-05  Bob Weiner  <rsw@gnu.org>
 
 * hyrolo.el (hyrolo-hdr-to-first-line-p): Handle black lines and @loc> after
-    two lines of 'hyrolo-hdr-regexp'.
+    two lines of 'hyrolo-hdr-regexp'.  Move by visible lines.
             (hyrolo-outline-next-visible-heading): Fix moving when in a file
-    hdr but not at the start of a line.
+    hdr but not at the start of a line.  Fix forward and backward movement
+    when entries are hidden.
+            (hyrolo-hdr-to-first-line-p, hyrolo-hdr-move-after-p): Return t
+    only if point is left on a visible, non-hidden character to fix next
+    and previous entry movement.
+            (hyrolo-hdr-in-p): Rewrite with 'hyrolo-hdr-to-first-line-p'
+    instead of 'hyrolo-hdr-move-after-p' since that can return nil when it
+    leaves point at a hidden/invisible position.
 
 2026-04-04  Bob Weiner  <rsw@gnu.org>
 
