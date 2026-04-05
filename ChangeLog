@@ -35,6 +35,11 @@
 
 * hproperty.el (hproperty:length): Add and use in HyRolo.
 
+2026-04-02  Mats Lidell  <matsl@gnu.org>
+
+* hsys-org.el (hsys-org-id-find-advice): Fix docstring has wrong usage
+    of unescaped single quotes and make first line a sentence.
+
 2026-03-31  Bob Weiner  <rsw@gnu.org>
 
 * hyrolo.el (hyrolo-outline-next-visible-heading): Optimize performance in
@@ -63,6 +68,14 @@
     eliminate function generation on every call.
             (hyrolo-next-match): Speed up a bit with local vars and add in-line
     comments to explain logic.
+
+2026-03-30  Mats Lidell  <matsl@gnu.org>
+
+* test/kotl-mode-tests.el (kotl-mode-split-cell): Use kotl-mode:kill-tree
+    with new arg 0 for clearer reuse of test buffer.
+    (kotl-mode--kill-tree-erase-buffer): Add test for arg 0 to erase buffer.
+    (kotl-mode--kill-tree-first-and-only-tree): Add test for verifying
+    removing one tree.
 
 2026-03-29  Bob Weiner  <rsw@gnu.org>
 
