@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    04-Feb-89
-;; Last-Mod:     23-Mar-26 at 21:47:31 by Bob Weiner
+;; Last-Mod:      4-Apr-26 at 23:19:29 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1475,7 +1475,8 @@ If assist key is pressed within:
 
 (defun smart-hyrolo ()
   "In hyrolo match buffer, edit current entry.
-If on a file header, edit the file.  Uses one key or mouse key.
+If on a file header, edit the file at current point.  Uses one key or mouse
+key.
 
 Invoked via a key press when in the `hyrolo-display-buffer'.  Assume that
 its caller has already checked that the key was pressed in an appropriate
@@ -1483,8 +1484,8 @@ buffer and has moved the cursor to the selected buffer."
   (interactive)
   (if (hyrolo-hdr-in-p)
       (hact 'hyp-source (save-excursion
-			  (when (and (hyrolo-hdr-to-first-line-p)
-				     (search-forward hbut:source-prefix nil t))
+                          (hyrolo-hdr-to-first-line-p)
+			  (when (search-forward hbut:source-prefix nil t)
 			    (hbut:source t))))
     (hyrolo-edit-entry)))
 
