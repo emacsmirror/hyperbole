@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    23-Jun-24 at 12:50:37
-;; Last-Mod:     18-Jan-26 at 08:29:26 by Bob Weiner
+;; Last-Mod:      2-Apr-26 at 23:13:51 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -77,7 +77,7 @@ Otherwise, return (nil nil nil)."
 (defib hynote-file ()
   "When on a HyNote file name stem, display the file and its optional section.
 This type is active only in buffers where `hywiki-active-in-current-buffer-p'
-is true.  This may require that (hywiki-mode) has been enabled."
+is true.  This may require that `hywiki-mode' has been enabled."
   (when (hywiki-active-in-current-buffer-p)
     (cl-destructuring-bind (file-stem-name start end)
 	(hynote-file-stem-start-end-at)
