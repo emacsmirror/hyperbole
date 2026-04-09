@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell <matsl@gnu.org>
 ;;
 ;; Orig-Date:    19-Jun-21 at 22:42:00
-;; Last-Mod:      5-Apr-26 at 02:24:43 by Bob Weiner
+;; Last-Mod:      8-Apr-26 at 23:14:30 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -461,7 +461,6 @@ Match a string in the second cell."
 
 (ert-deftest hyrolo-tests--fgrep-move-test ()
   "Verify different move commands after `hyrolo-fgrep'."
-  :expected-result :failed
   (let* ((kotl-file1 (hyrolo-tests--gen-kotl-outline "heading" "foo bar" 1))
          (kotl-file2 (hyrolo-tests--gen-kotl-outline "heading" "foo bar" 1))
          (hyrolo-file-list (list kotl-file1 kotl-file2))
@@ -472,6 +471,20 @@ Match a string in the second cell."
           (hyrolo-fgrep "bar")
           (should (string= hyrolo-display-buffer (buffer-name)))
 
+          (ert-info ("Hide first header and move down using ?n")
+            (should (looking-at-p "==="))
+            (execute-kbd-macro (kbd "h"))
+            (execute-kbd-macro (kbd "n"))
+            (should (looking-at-p "==="))
+            (execute-kbd-macro (kbd "n"))
+            (should (looking-at-p h1_str))
+            (execute-kbd-macro (kbd "n"))
+            (should (looking-at-p h1a_str))
+            (execute-kbd-macro (kbd "n"))
+            (should (eobp)))
+
+          (outline-show-all)
+          (goto-char (point-min))
           (ert-info ("Move down using ?n")
             (should (looking-at-p "==="))
             (execute-kbd-macro (kbd "n"))
@@ -520,19 +533,7 @@ Match a string in the second cell."
             (execute-kbd-macro (kbd "b"))
             (should (looking-at-p "==="))
             (should-error (execute-kbd-macro (kbd "b")))
-            (should (bobp)))
-
-          (ert-info ("Hide first header and move down using ?n")
-            (should (looking-at-p "==="))
-            (execute-kbd-macro (kbd "h"))
-            (execute-kbd-macro (kbd "n"))
-            (should (looking-at-p "==="))
-            (execute-kbd-macro (kbd "n"))
-            (should (looking-at-p h1_str))
-            (execute-kbd-macro (kbd "n"))
-            (should (looking-at-p h1a_str))
-            (execute-kbd-macro (kbd "n"))
-            (should (eobp))))
+            (should (bobp))))
       ;; Unwind forms
       (kill-buffer hyrolo-display-buffer)
       (hy-delete-files-and-buffers hyrolo-file-list))))

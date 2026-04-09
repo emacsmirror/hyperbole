@@ -2,7 +2,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     4-Jul-24 at 09:57:18
-;; Last-Mod:     28-Feb-26 at 10:15:27 by Bob Weiner
+;; Last-Mod:      7-Apr-26 at 23:47:23 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -120,7 +120,7 @@ Install `consult' package if not yet installed."
   (let ((consult-version (hsys-consult-get-version)))
     ;; Multi-file support added after consult version "0.32"
     (when (not (and consult-version (string-greaterp consult-version "0.32")))
-      (error "(hsys-consult-grep): consult package version is %s; update required"
+      (error "(hsys-consult-grep): consult package version is %s; update required to 0.35 minimum"
 	     consult-version))))
 
 ;;;###autoload
@@ -131,7 +131,12 @@ Install `consult' package if not yet installed."
 	 (buffer-modified (when buffer-existed (buffer-modified-p buffer-existed)))
 	 (buf (or buffer-existed (find-file-noselect consult-file))))
     (with-current-buffer buf
-      (prog1 (package-get-version)
+      (prog1 (save-excursion
+               (widen)
+               (goto-char (point-min))
+               (if (re-search-forward "Version:[ \t]+\\([.0-9]+\\)" nil t)
+                   (match-string-no-properties 1)
+                 ""))
 	(unless buffer-modified
 	  (kill-buffer buf))))))
 
