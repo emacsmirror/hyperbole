@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell <matsl@gnu.org>
 ;;
 ;; Orig-Date:    19-Jun-21 at 22:42:00
-;; Last-Mod:      5-Apr-26 at 02:24:43 by Bob Weiner
+;; Last-Mod:      8-Apr-26 at 22:42:43 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -461,7 +461,6 @@ Match a string in the second cell."
 
 (ert-deftest hyrolo-tests--fgrep-move-test ()
   "Verify different move commands after `hyrolo-fgrep'."
-  :expected-result :failed
   (let* ((kotl-file1 (hyrolo-tests--gen-kotl-outline "heading" "foo bar" 1))
          (kotl-file2 (hyrolo-tests--gen-kotl-outline "heading" "foo bar" 1))
          (hyrolo-file-list (list kotl-file1 kotl-file2))
