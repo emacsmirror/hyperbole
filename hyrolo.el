@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     7-Jun-89 at 22:08:29
-;; Last-Mod:      5-Apr-26 at 02:34:12 by Bob Weiner
+;; Last-Mod:      8-Apr-26 at 23:12:04 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -2053,10 +2053,16 @@ Return non-nil if point moves, else return nil."
 	(forward-line 1)))
 
     (if (> (point) opoint)
-	(progn (while (looking-at-p "^[ \t]*$")
+	(progn (when (outline-invisible-p)
+                 (setq opoint (point))
+                 (goto-char (or (next-single-char-property-change (point) 'invisible)
+                                (point)))
+                 ;; Have to move past end-of-line if have moved
+                 (when (> (point) opoint)
+                   (goto-char (1+ (point)))))
+               (while (looking-at-p "^[ \t]*$")
 		 (forward-line 1))
-               (unless (outline-invisible-p)
-	         result))
+	       result)
       (goto-char opoint)
       nil)))
 
@@ -2888,7 +2894,9 @@ With optional INCLUDE-SUB-ENTRIES non-nil, move to the end of the
 entire subtree.  Return INCLUDE-SUB-ENTRIES flag value."
   (if (not include-sub-entries)
       ;; Move to (point-max) if no next heading found and return nil
-      (outline-next-heading)
+      (if (derived-mode-p 'hyrolo-mode)
+          (hyrolo-outline-next-visible-heading 1)
+        (outline-next-heading))
     ;; When point is before the first entry in an Org file,
     ;; `outline-end-of-subtree' can signal an
     ;; `outline-before-first-heading' error within its subcall to

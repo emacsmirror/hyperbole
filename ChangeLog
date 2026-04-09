@@ -1,3 +1,15 @@
+2026-04-08  Bob Weiner  <rsw@gnu.org>
+
+* test/hyrolo-tests.el (hyrolo-tests--fgrep-move-test): Move tests more
+    likely to fail to the start and after these ensure full outline is
+    shown and point goes to 'point-min'.
+
+* hyrolo.el (hyrolo-move-to-entry-end): Fix movement over collapsed file
+    headers by changing call of 'outline-next-heading' to
+    'hyrolo-outline-next-visible-heading'.
+            (hyrolo-hdr-move-after-p): Fix to fully move past hidden file
+    headers.
+
 2026-04-08  Mats Lidell  <matsl@gnu.org>
 
 * test/hyrolo-tests.el (hyrolo-tests--fgrep-move-test): Add test case
