@@ -5,6 +5,11 @@
     expected failed since there is a problem with moving over hidden
     sections.
 
+2026-04-07  Bob Weiner  <rsw@gnu.org>
+
+* hsys-consult.el: Rewrite to properly extract version number from the
+    consult.el file.
+
 2026-04-05  Bob Weiner  <rsw@gnu.org>
 
 * hyrolo.el (hyrolo-hdr-to-first-line-p): Handle black lines and @loc> after
