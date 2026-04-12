@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    19-Sep-91 at 20:45:31
-;; Last-Mod:     11-Apr-26 at 19:28:10 by Bob Weiner
+;; Last-Mod:     12-Apr-26 at 12:59:51 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -355,7 +355,7 @@ display options."
           ;; Match PATH-related Environment and Lisp variable names and
 	  ;; Emacs Lisp and Info files without any directory component.
           (when (setq path orig-path)
-            (cond ((string-match "\\`#[^#]+" path)
+            (cond ((string-match "\\`#[^\]\[#+^{}<>\"`'\\\n\t\f\r]+" path)
                    (apply #'ibut:label-set path (hpath:start-end path))
 		   (hact 'link-to-file path))
                   ((and (string-match hpath:path-variable-regexp path)

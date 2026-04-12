@@ -1,5 +1,10 @@
 2026-04-12  Bob Weiner  <rsw@gnu.org>
 
+* hibtypes.el (pathname): Eliminate matches to Elisp quoted symbols like
+    #'symbol or any use of quote marks after the leading optional # character.
+  hpath.el (hpath:find): Don't match as an anchor unless there are anchor
+    chars after the opening # char.
+
 * kotl/kotl-mode.el (kotl-mode:split-cell): Fix extra blank line(s)
     remaining after split a cell.  Now removes all whitespace, including
     newlines  around the point where the split occurs.
