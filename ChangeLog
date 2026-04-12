@@ -1,3 +1,37 @@
+2026-04-12  Bob Weiner  <rsw@gnu.org>
+
+* hyrolo.el (hyrolo-hdr-move-after-p): Fix infinite loop where did not
+    check that (forward-line 1) actually moved, so just kept looping.
+    Now it checks that the return value is zero.  This fixes the test:
+    'hyrolo-tests--outline-hide-other'.
+
+2026-04-11  Bob Weiner  <rsw@gnu.org>
+
+* hsys-consult.el (hsys-consult-get-exit-value): Use 'hypb:function-p'
+    instead of 'functionp' so recognizes symbol names of functions too.
+
+* hibtypes.el (man-apropos): Stop matches to (function (pos)) in elisp
+    by requiring first char in parens to be a 1-9 digit.
+
+* hyrolo.el (hyrolo-outline-level): Remove first cond clause checking
+    for :hyrolo-level which would return 0 for outline-level in Koutlines
+    matched in the hyrolo display buffer because the :hyrolo-level property
+    was not on the first char of the line but indented to the first char
+    of the cell's relative id.  Instead let it fall through to the clause
+    matching 'hyrolo-entry-group-number'.
+            (hyrolo--cache-initialize,
+             hyrolo--cache-major-mode-indexes): Clarified usage in doc string.
+    Initialize to '(1) instead of '(0) so when point is at position 1 in the
+    *HyRolo* buffer which matches to the first position in this list.  The
+    'major-mode' lookup table indexes starting with 1, not 0, so using 0 would
+    return nil for the 'major-mode'.
+            (hyrolo-outline-backward-same-level,
+             hyrolo-outline-forward-same-level): Fix so if within a file hdr
+    moves to the start of the file hdr before trying to move to the next
+    entry at the same level. Update to treat a nil arg as 1, a 0 arg as a
+    no-op, negative args move in the opposite direction and return whether
+    any sibling is found (point moves) or not (point does not move).
+
 2026-04-10  Mats Lidell  <matsl@gnu.org>
 
 * test/hyrolo-tests.el (hyrolo-tests--fgrep-move-test): Add more tests for

@@ -2,7 +2,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     4-Jul-24 at 09:57:18
-;; Last-Mod:      7-Apr-26 at 23:47:23 by Bob Weiner
+;; Last-Mod:     11-Apr-26 at 19:35:22 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -300,7 +300,7 @@ arguments, store and return its result value into `hsys-consult-exit-value',
 Otherwise, return the selection from CONSULT-FUNCTION."
   (unless hsys-consult-flag
     (error "`%s' command requires `hsys-consult-flag' set to t" this-command))
-  (unless (functionp consult-function)
+  (unless (hypb:function-p consult-function)
     (user-error "(hsys-consult-get-exit-value): First arg must be a function, not `%s'"
 		consult-function))
 

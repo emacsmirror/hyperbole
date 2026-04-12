@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    19-Sep-91 at 20:45:31
-;; Last-Mod:     28-Mar-26 at 13:02:39 by Bob Weiner
+;; Last-Mod:     11-Apr-26 at 19:28:10 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -854,7 +854,7 @@ other buffers."
           start
           end
           topic)
-      (when (looking-at (concat "\\(" nm "\\)[ \t]*\\(([-0-9a-zA-z]+)\\)"))
+      (when (looking-at (concat "\\(" nm "\\)[ \t]*\\(([1-9][-0-9a-zA-z]*)\\)"))
         (setq start (match-beginning 0)
               end   (match-end 0))
         (require 'man)
