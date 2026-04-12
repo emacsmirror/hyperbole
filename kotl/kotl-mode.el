@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    6/30/93
-;; Last-Mod:     11-Apr-26 at 19:38:12 by Bob Weiner
+;; Last-Mod:     12-Apr-26 at 11:24:21 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -3035,6 +3035,7 @@ replicated in the new cell."
   (interactive "*P")
   ;; delete any surrounding whitespace
   (delete-horizontal-space)
+  (delete-region (point) (progn (skip-chars-backward "\n\r\t ") (point)))
   (let ((new-cell-contents (kotl-mode:kill-region
 			    (point) (kcell-view:end-contents) 'string))
 	(start (kcell-view:start))

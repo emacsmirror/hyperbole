@@ -1,5 +1,11 @@
 2026-04-12  Bob Weiner  <rsw@gnu.org>
 
+* kotl/kotl-mode.el (kotl-mode:split-cell): Fix extra blank line(s)
+    remaining after split a cell.  Now removes all whitespace, including
+    newlines  around the point where the split occurs.
+  test/kotl-mode-tests.el (kotl-mode-split-cell): Above fixes this test
+    so remove ':expected-result :failed'.
+
 * hyrolo.el (hyrolo-hdr-move-after-p): Fix infinite loop where did not
     check that (forward-line 1) actually moved, so just kept looping.
     Now it checks that the return value is zero.  This fixes the test:
