@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     6-Oct-91 at 03:42:38
-;; Last-Mod:     29-Mar-26 at 22:47:54 by Bob Weiner
+;; Last-Mod:     12-Apr-26 at 15:07:51 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1233,6 +1233,17 @@ Removes any trailing newline at the end of the output."
 
 ;;;###autoload
 (defalias 'hypb:rgrep 'hui-select-rgrep)
+
+;;;###autoload
+(defun hypb:save-buffer-silently ()
+  "Silently save the current buffer whether modified or not."
+  (when (buffer-modified-p)
+    (let (
+          ;; Prevent output to the echo area / stdout
+          (inhibit-message t)
+          ;; Prevent writing to the *Messages* buffer
+          (message-log-max nil))
+      (basic-save-buffer))))
 
 (defun hypb:save-lines (regexp)
   "Save only lines containing match for REGEXP.

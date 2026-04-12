@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell <matsl@gnu.org>
 ;;
 ;; Orig-Date:    28-Feb-21 at 23:26:00
-;; Last-Mod:      7-Mar-26 at 18:40:46 by Bob Weiner
+;; Last-Mod:     12-Apr-26 at 15:11:31 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -399,7 +399,7 @@
                 (progn
                   (find-file filename)
                   (insert "\"" fn "\"")
-                  (save-buffer)
+                  (hypb:save-buffer-silently)
                   (goto-char 3)
                   (should (string= (hpath:at-p) fn))
                   (should (string= (hpath:is-p fn) fn)))
