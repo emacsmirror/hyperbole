@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    6/30/93
-;; Last-Mod:     29-Mar-26 at 12:53:49 by Bob Weiner
+;; Last-Mod:     11-Apr-26 at 19:38:12 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -3703,6 +3703,7 @@ but always operates upon the current view."
 (put 'outline 'reveal-toggle-invisible 'kotl-mode:reveal-toggle-invisible)
 (defun kotl-mode:isearch-open-invisible (_overlay)
   (kotl-mode:show-tree))
+
 ;; Adapted from outline-reveal-toggle-invisible; called by isearch.
 (defun kotl-mode:reveal-toggle-invisible (o hidep)
   (if (not (derived-mode-p 'kotl-mode))

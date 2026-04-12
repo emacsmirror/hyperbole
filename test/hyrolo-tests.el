@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell <matsl@gnu.org>
 ;;
 ;; Orig-Date:    19-Jun-21 at 22:42:00
-;; Last-Mod:      8-Apr-26 at 23:14:30 by Bob Weiner
+;; Last-Mod:     11-Apr-26 at 19:28:11 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -461,7 +461,6 @@ Match a string in the second cell."
 
 (ert-deftest hyrolo-tests--fgrep-move-test ()
   "Verify different move commands after `hyrolo-fgrep'."
-  :expected-result :failed
   (let* ((kotl-file1 (hyrolo-tests--gen-kotl-outline "heading" "foo bar" 1))
          (kotl-file2 (hyrolo-tests--gen-kotl-outline "heading" "foo bar" 1))
          (hyrolo-file-list (list kotl-file1 kotl-file2))
@@ -472,9 +471,27 @@ Match a string in the second cell."
           (hyrolo-fgrep "bar")
           (should (string= hyrolo-display-buffer (buffer-name)))
 
-          (ert-info ("Hide first header and move down using ?n")
+          (ert-info ("Hide first header move down using ?f")
             (should (looking-at-p "==="))
             (execute-kbd-macro (kbd "h"))
+            (execute-kbd-macro (kbd "f"))
+            (should (looking-at-p "==="))
+            (execute-kbd-macro (kbd "f"))
+            (should (looking-at-p h1_str))
+            (let ((err (should-error (execute-kbd-macro (kbd "f")))))
+              (should (string-match-p "No following same-level heading/header" (cadr err)))))
+
+          (ert-info ("With hidden first header move up using ?b")
+            (execute-kbd-macro (kbd "b"))
+            (should (looking-at-p "==="))
+            (execute-kbd-macro (kbd "b"))
+            (should (looking-at-p "==="))
+            (should (bobp))
+            (let ((err (should-error (execute-kbd-macro (kbd "b")))))
+              (should (string-match-p "No previous same-level heading/header" (cadr err)))))
+
+          (ert-info ("With hidden first header and move down using ?n")
+            (should (looking-at-p "==="))
             (execute-kbd-macro (kbd "n"))
             (should (looking-at-p "==="))
             (execute-kbd-macro (kbd "n"))
@@ -494,24 +511,6 @@ Match a string in the second cell."
             (execute-kbd-macro (kbd "p"))
             (should (looking-at-p "==="))
             (should (bobp)))
-
-          (ert-info ("With hidden first header move down using ?f")
-            (should (looking-at-p "==="))
-            (execute-kbd-macro (kbd "f"))
-            (should (looking-at-p "==="))
-            (execute-kbd-macro (kbd "f"))
-            (should (looking-at-p h1_str))
-            (let ((err (should-error (execute-kbd-macro (kbd "f")))))
-              (should (string-match-p "No following same-level heading/header" (cadr err)))))
-
-          (ert-info ("With hidden first header move up using ?b")
-            (execute-kbd-macro (kbd "b"))
-            (should (looking-at-p "==="))
-            (execute-kbd-macro (kbd "b"))
-            (should (looking-at-p "==="))
-            (should (bobp))
-            (let ((err (should-error (execute-kbd-macro (kbd "b")))))
-              (should-not (equal '(void-function nil) err)))) ;FIXME: No error message but void-function!?
 
           (outline-show-all)
 
