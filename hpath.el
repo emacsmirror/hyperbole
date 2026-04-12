@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     1-Nov-91 at 00:44:23
-;; Last-Mod:     22-Mar-26 at 18:26:12 by Bob Weiner
+;; Last-Mod:     12-Apr-26 at 12:59:52 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -90,8 +90,10 @@ Group 3 is the 1-based line number.  Group 5 is the 0-based column number.")
 (defconst hpath:markup-link-anchor-regexp
   "\\`\\(#?[^#+]*[^#+.]\\)?\\(#\\)\\([^\]\[#+^{}<>\"`'\\\n\t\f\r]*\\)"
   "Regexp matching a filename followed by a hash (#) and an optional anchor name.
-The anchor is an in-file reference.  # is group 2.  Group 3 is the anchor
-name.")
+The optional filename is group 1, though if it ends with a # then that
+includes group 2.  The anchor is an in-file reference.  Its leading # is
+group 2.  Group 3 is the optional anchor name; if it is empty, then group 2
+is part of the filename.")
 
 (defvar hpath:path-variable-regexp "\\`\\$?[{(]?\\([-_A-Z]*path[-_A-Z]*\\)[)}]?\\'"
   "Regexp that matches exactly to a standalone path variable name reference.
@@ -1590,7 +1592,8 @@ but locational suffixes within the file are utilized."
 			   (string-to-number (match-string 3 path)))
 		 path (substring path 0 (match-beginning 0)))))
     (unless (file-exists-p path) ;; might be #autosave-file#
-      (when (string-match hpath:markup-link-anchor-regexp path)
+      (when (and (string-match hpath:markup-link-anchor-regexp path)
+                 (not (string-empty-p (match-string 3 path))))
 	(setq hash t
 	      anchor (match-string 3 path)
 	      anchor-start-pos (match-beginning 3)

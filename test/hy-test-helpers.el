@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell <matsl@gnu.org>
 ;;
 ;; Orig-Date:    30-Jan-21 at 12:00:00
-;; Last-Mod:     15-Mar-26 at 23:21:21 by Bob Weiner
+;; Last-Mod:     12-Apr-26 at 15:09:22 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -19,8 +19,8 @@
 ;;; Code:
 
 (require 'ert)
-(require 'hmouse-drv)                   ; For `action-key'
-(require 'hywiki)                       ; For `hywiki-word-face-at-p'
+(require 'hmouse-drv) ;; For `action-key'
+(require 'hywiki)     ;; For `hywiki-word-face-at-p' and (require 'hypb)
 (eval-when-compile (require 'cl-lib))
 
 (defun hy-test-helpers:consume-input-events ()
@@ -93,11 +93,15 @@ Checks ACTYPE, ARGS, LOC, LBL-KEY and NAME."
 
 (defun hy-delete-file-and-buffer (file)
   "Delete FILE and buffer visiting file."
-  (let ((buf (find-buffer-visiting file)))
+  (let ((buf (find-buffer-visiting file))
+        ;; Prevents output to the echo area / stdout
+        (inhibit-message t)
+        ;; Prevents writing to the *Messages* buffer
+        (message-log-max nil))
     (when buf
       (with-current-buffer buf
 	(when (buffer-modified-p)
-	  (save-buffer)
+          (hypb:save-buffer-silently)
 	  ;; If the save failed, ensure it shows non-modified before
 	  ;; trying to kill it.
           (set-buffer-modified-p nil))

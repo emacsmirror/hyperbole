@@ -1,5 +1,20 @@
 2026-04-12  Bob Weiner  <rsw@gnu.org>
 
+* hywiki.el (hywiki-cache-save):
+  test/hy-test-helpers.el (hy-delete-file-and-buffer): Suppress echo area and
+    *Messages* output of 'Wrote <filename' and use 'basic-save-buffer' instead
+    of 'save-buffer' to reduce backup files, etc.
+  hypb.el (hypb:save-buffer-silently): Add and use in 'hywiki-cache-save' and
+    throughout Hyperbole tests.
+
+* test/hywiki-tests.el (hywiki-tests--save-referent-info-node-use-menu): Change
+    match to Info node from "(emacs)" to "(emacs)*" to get it to match.
+
+* hibtypes.el (pathname): Eliminate matches to Elisp quoted symbols like
+    #'symbol or any use of quote marks after the leading optional # character.
+  hpath.el (hpath:find): Don't match as an anchor unless there are anchor
+    chars after the opening # char.
+
 * kotl/kotl-mode.el (kotl-mode:split-cell): Fix extra blank line(s)
     remaining after split a cell.  Now removes all whitespace, including
     newlines  around the point where the split occurs.

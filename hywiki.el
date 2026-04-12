@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:     29-Mar-26 at 22:28:44 by Bob Weiner
+;; Last-Mod:     12-Apr-26 at 15:09:20 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -3251,7 +3251,7 @@ save and potentially set `hywiki--directory-mod-time' and
 	(hash-prin1 (hywiki-get-referent-hasht) nil t)
 	(princ ")\n")
 
-	(save-buffer)
+	(hypb:save-buffer-silently)
 	(if (buffer-modified-p)
 	    (error "(hywiki-cache-save): Attempt to kill modified Environment file failed to save, \"%s\"" save-file)
 	  (kill-buffer standard-output))))))

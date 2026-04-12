@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell
 ;;
 ;; Orig-Date:    18-May-24 at 23:59:48
-;; Last-Mod:     21-Mar-26 at 13:55:18 by Bob Weiner
+;; Last-Mod:     12-Apr-26 at 15:11:29 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -22,7 +22,7 @@
 (require 'el-mock)
 (require 'ert-x)
 (require 'hy-test-helpers)
-(require 'hywiki)
+(require 'hywiki) ;; Requires 'hypb
 (require 'hsys-org)
 (require 'ox-publish)
 (require 'seq) ;; for `seq-take-while' and `seq-uniq'
@@ -395,7 +395,7 @@ around the call.  This is for simulating the command loop."
       (find-file wiki-page)
       (dolist (v sections)
         (hywiki-tests--insert (format "%s\nbody\n" v)))
-      (save-buffer)
+      (hypb:save-buffer-silently)
       (hywiki-mode :all)
       (dolist (v sections)
         (with-temp-buffer
@@ -414,7 +414,7 @@ around the call.  This is for simulating the command loop."
 line 1
 line 2
 ")
-      (save-buffer)
+      (hypb:save-buffer-silently)
       (dolist (l '(1 2))
         (dolist (c '("" ":C0" ":C5"))
           (with-temp-buffer
@@ -890,7 +890,7 @@ body A
 ** Bsection subsection
 body B
 ")
-        (save-buffer))
+        (hypb:save-buffer-silently))
       ;; Create temp buffers with WikiWord links to the target
       ;; WikiWord page and verify they work.
       (with-temp-buffer
@@ -929,7 +929,7 @@ Verify dash in the header matches a target with dash replaced by space."
 * header  three
 * header   four
 ")
-        (save-buffer))
+        (hypb:save-buffer-silently))
       ;; Create temp buffers with WikiWord links to the target
       ;; WikiWord page and verify they work.
       (with-temp-buffer
@@ -984,7 +984,7 @@ body B
 *** Csection subsection
 body C
 ")
-	    (save-buffer)
+	    (hypb:save-buffer-silently)
 	    (find-file wikipage)
 	    (hywiki-tests--insert "\
 WikiWord
@@ -992,7 +992,7 @@ WikiWord#Asection
 \"WikiWord#Bsection subsection\"
 WikiWord#Csection-subsection
 ")
-	    (save-buffer)
+	    (hypb:save-buffer-silently)
 
 	    ;; Export the wiki
 	    (hywiki-publish-to-html t)
@@ -1050,7 +1050,7 @@ WikiWord#Csection-subsection
             (find-file wikiword)
             (erase-buffer)
             (hywiki-tests--insert "Text\n")
-	    (save-buffer)
+	    (hypb:save-buffer-silently)
 
             (should (file-exists-p hywiki-directory))
 	    (should (file-exists-p wikipage))
@@ -1069,7 +1069,7 @@ WikiWord#Csection-subsection
 		(find-file wikipage)
                 (erase-buffer)
                 (hywiki-tests--insert input)
-	        (save-buffer)
+	        (hypb:save-buffer-silently)
 
 		;; Export the wiki
 		(hywiki-publish-to-html t)
@@ -1300,7 +1300,7 @@ Note special meaning of `hywiki-allow-plurals-flag'."
 	   (setq wiki-page-buffer (find-file wiki-page))
 	   (erase-buffer)
 	   (hywiki-tests--insert "WikiWord")
-           (save-buffer)
+           (hypb:save-buffer-silently)
            (goto-char 4)
 	   (should (hact 'kbd-key "C-u C-h hhck {C-e SPC ABC} RET"))
 	   (hy-test-helpers:consume-input-events)
@@ -1368,7 +1368,7 @@ Note special meaning of `hywiki-allow-plurals-flag'."
       (let ((vertico-mode 0))
         (find-file wiki-page)
         (hywiki-tests--insert "\nWikiReferent\n")
-        (save-buffer)
+        (hypb:save-buffer-silently)
         (goto-char (point-min))
         (should (hact 'kbd-key "C-u C-h hhc WikiReferent RET f RET"))
         (hy-test-helpers:consume-input-events)))))
@@ -1447,7 +1447,7 @@ Note special meaning of `hywiki-allow-plurals-flag'."
   (hywiki-tests--referent-test
     (progn
       (sit-for 0.2)
-      (cons 'info-node "(emacs)"))
+      (cons 'info-node "(emacs)*"))
     (save-excursion
       (unwind-protect
           (progn
@@ -1918,7 +1918,7 @@ face is verified during the change."
           (progn
             (with-current-buffer (find-file wikiHi)
               (hywiki-tests--insert "Ho")
-              (save-buffer)
+              (hypb:save-buffer-silently)
               (setq wikiHo (cdr (hywiki-add-page "Ho")))
               (goto-char 2)
               (hywiki-tests--verify-hywiki-word "Ho" "Ho")))
@@ -2202,7 +2202,7 @@ expected result."
 ** SubHeader
 *** SubSubHeader
 ")
-      (save-buffer))
+      (hypb:save-buffer-silently))
     (should (set:equal '("Header" "SubHeader" "SubSubHeader")
                        (hywiki-get-page-headings wiki-page)))))
 
@@ -2251,7 +2251,7 @@ expected result."
 ** SubHeader
 *** SubSubHeader
 ")
-        (save-buffer)))
+        (hypb:save-buffer-silently)))
     (ert-info ("Word 'Wixx' can't be completed, no headers are returned")
       (should-not (hywiki-completion-at-point)))
     (ert-info ("Word 'Wiki' can be completed so headers are returned")

@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell <matsl@gnu.org>
 ;;
 ;; Orig-Date:    19-Jun-21 at 22:42:00
-;; Last-Mod:     11-Apr-26 at 19:28:11 by Bob Weiner
+;; Last-Mod:     12-Apr-26 at 15:11:30 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -871,7 +871,7 @@ optional DEPTH the number of sub cells are created to that depth."
         (insert (format "%s %d" heading (1+ d)))
         (kotl-mode:newline 1)
         (insert (format "%s %d" body (1+ d)))))
-    (save-buffer)
+    (hypb:save-buffer-silently)
     kotl-file))
 
 (ert-deftest hyrolo-tests--outline-next-visible-heading-kotl ()

@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell <matsl@gnu.org>
 ;;
 ;; Orig-Date:    18-May-21 at 22:14:10
-;; Last-Mod:     12-Apr-26 at 11:24:18 by Bob Weiner
+;; Last-Mod:     12-Apr-26 at 15:11:30 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -123,7 +123,7 @@
 
           ;; Verify idstamp view is active when file is visited next time.
           (set-buffer-modified-p t)
-          (save-buffer)
+          (hypb:save-buffer-silently)
           (kill-buffer)
           (find-file kotl-file)
           (should (eq (kview:label-type kotl-kview) 'id))
@@ -155,7 +155,7 @@
 
           ;; Verify kvspec is kept when saving and opening
           (set-buffer-modified-p t)
-          (save-buffer)
+          (hypb:save-buffer-silently)
           (kill-buffer)
           (find-file kotl-file)
           (should (equal kvspec:current "en."))
@@ -409,7 +409,7 @@
           (kotl-mode:beginning-of-buffer)
           (kotl-mode:kill-tree)
           (should (string= (kcell-view:idstamp) "02"))
-          (save-buffer)
+          (hypb:save-buffer-silently)
           (kill-buffer)
           (find-file kotl-file)
           (should (looking-at-p "second"))
@@ -658,7 +658,7 @@
         (progn
           (find-file kotl-file)
           (insert "a cell")
-          (save-buffer)
+          (hypb:save-buffer-silently)
           (should (string= (kcell:get-attr (kcell-view:cell-from-ref 0) 'level-indent) indent))
 
           (copy-file kotl-file new-name)
@@ -1006,7 +1006,7 @@ optional DEPTH the number of sub cells are created to that depth."
         (insert (format "%s %d" heading (1+ d)))
         (kotl-mode:newline 1)
         (insert (format "%s %d" body (1+ d)))))
-    (save-buffer)
+    (hypb:save-buffer-silently)
     kotl-file))
 
 (cl-defstruct kotl-mode-tests--func

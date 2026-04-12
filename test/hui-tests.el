@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell <matsl@gnu.org>
 ;;
 ;; Orig-Date:    30-Jan-21 at 12:00:00
-;; Last-Mod:     14-Sep-25 at 19:26:09 by Mats Lidell
+;; Last-Mod:     12-Apr-26 at 15:11:31 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -79,7 +79,7 @@
       ;; unsaved buffers are left open
       (save-excursion
 	(set-buffer gbut-file-buffer)
-	(save-buffer))
+	(hypb:save-buffer-silently))
       (hy-delete-file-and-buffer linked-file)
       (when (file-writable-p hbmap:dir-user)
 	(delete-directory hbmap:dir-user t)))))
@@ -546,7 +546,7 @@ of the defun."
         (progn
           (find-file kotl-file)
           (klink:create "1")
-	  (save-buffer)
+	  (hypb:save-buffer-silently)
 
           (kotl-mode:beginning-of-cell)
           (forward-char 1)
