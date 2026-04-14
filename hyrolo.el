@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:     7-Jun-89 at 22:08:29
-;; Last-Mod:     12-Apr-26 at 09:29:44 by Bob Weiner
+;; Last-Mod:     13-Apr-26 at 22:46:49 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1212,23 +1212,30 @@ Raise an error if a match is not found."
   (let* ((regexp hyrolo-match-regexp)
          (start (point))
          (case-fold-search t)
-	 (prior-regexp-search (stringp hyrolo-match-regexp)))
-
+	 (prior-regexp-search (stringp hyrolo-match-regexp))
+	 found)
     ;; Ensure a search regexp has been stored previously or error
     (unless prior-regexp-search
       (error (substitute-command-keys
               "(hyrolo-next-match): Use {\\[hyrolo-grep-or-fgrep]} to do a search first")))
 
     ;; If already at a match, move past it to ensure we find the next one
-    (when (looking-at regexp)
+    (when (and (hproperty:but-face-p (point) (list (or hyrolo-highlight-face
+						       hproperty:highlight-face)))
+	       (looking-at regexp))
       (goto-char (match-end 0)))
 
     ;; Search for the next match
-    (if (re-search-forward regexp nil t)
-        (progn
-          (goto-char (match-beginning 0))
-	  ;; !! TODO: Next line temporary until `reveal-mode' works properly
-          (hyrolo-outline-show-subtree))
+    (while (and (re-search-forward regexp nil t)
+		(progn (save-match-data
+			 (setq found (hproperty:but-face-p
+				      (1- (point)) (list (or hyrolo-highlight-face
+							     hproperty:highlight-face)))))
+		       (not found))))
+    (if found
+        (progn (goto-char (match-beginning 0))
+	       ;; !! TODO: Next line temporary until `reveal-mode' works properly
+               (hyrolo-outline-show-subtree))
       (goto-char start)
       (error "(hyrolo-next-match): No following matches for \"%s\"" regexp))))
 
@@ -1306,10 +1313,18 @@ Raise an error if a match is not found."
   (interactive)
   (hyrolo-verify)
   (if hyrolo-match-regexp
-      (let ((case-fold-search t))
-	(if (re-search-backward hyrolo-match-regexp nil t)
+      (let ((case-fold-search t)
+            (start (point))
+	    found)
+	(while (and (re-search-backward hyrolo-match-regexp nil t)
+		    (progn (setq found (hproperty:but-face-p
+					(point) (list (or hyrolo-highlight-face
+							  hproperty:highlight-face))))
+			   (not found))))
+	(if found
 	    ;; !! TODO: Next line temporary until `reveal-mode' works properly
 	    (hyrolo-outline-show-subtree)
+	  (goto-char start)
 	  (error
 	   "(hyrolo-previous-match): No prior matches for \"%s\"" hyrolo-match-regexp)))
     (error (substitute-command-keys "(hyrolo-previous-match): Use {\\[hyrolo-grep-or-fgrep]} to do an initial search"))))
@@ -2369,10 +2384,13 @@ Calls the functions given by `hyrolo-mode-hook'.
   (run-mode-hooks 'hyrolo-mode-hook))
 
 (defun hyrolo-next-regexp-match (regexp)
-  "In a HyRolo source buffer, move past next occurrence of REGEXP.
+  "In a HyRolo source buffer, move past next non-file-header occurrence of REGEXP.
 When found, return the match start position; otherwise, return nil."
-  (when (re-search-forward regexp nil t)
-    (match-beginning 0)))
+  (let (found)
+    (while (and (setq found (re-search-forward regexp nil t))
+                (save-match-data (hyrolo-hdr-in-p)))
+      (setq found nil))
+    (when found (match-beginning 0))))
 
 ;; The *HyRolo* buffer uses `hyrolo-org-mode' and `hyrolo-markdown-mode'
 ;; on Org and Markdown files that it reads to speed loading and

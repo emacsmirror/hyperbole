@@ -1,3 +1,9 @@
+2026-04-13  Bob Weiner  <rsw@gnu.org>
+
+* hyrolo.el (hyrolo-next-match, hyrolo-next-regexp-match,
+             hyrolo-previous-match): Update to match only outside of file
+    headers.
+
 2026-04-12  Bob Weiner  <rsw@gnu.org>
 
 * hywiki.el (hywiki-cache-save):
