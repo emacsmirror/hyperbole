@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    10/31/93
-;; Last-Mod:     30-Apr-26 at 02:33:14 by Bob Weiner
+;; Last-Mod:     30-Apr-26 at 13:24:40 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -348,11 +348,8 @@ VISIBLE-ONLY-P is non-nil.  Signal an error if kotl is not attached to a file."
   ;; Set-visited-file-name clears local-write-file-hooks that we use to save
   ;; koutlines properly, so reinitialize local variables.
   (kotl-mode)
-  ;; Prevent "stripspace" package from deleting trailing whitespace from the
-  ;; first line of cells which are blank.  These need to maintain spaces after
-  ;; the relative identifier to ensure proper editing of the first line.
-  (when (bound-and-true-p stripspace-local-mode)
-    (stripsapce-local-mode 0))
+  (kfile:insert-attributes-v3)
+  ;; Force a save
   (set-buffer-modified-p t)
   ;; This next line must come before the save-buffer so write-file-functions
   ;; can make use of it.
@@ -392,120 +389,144 @@ included in the list."
      kotl-structure)
     (nreverse cell-list)))
 
-(defun kfile:insert-attributes-v2 (_kview kcell-list)
-  "Set cell attributes within KVIEW for each element in KCELL-LIST.
-Assume all cell contents are already in kview and that no cells are
-hidden."
-  (let (buffer-read-only
-	idstamp
-	kcell-data)
-    (while
-	(progn
-	  (skip-chars-forward "\n")
-	  ;; !! TODO: Won't work if label-type is 'no.
-	  ;; Here we search past the cell identifier
-	  ;; for the location at which to place cell properties.
-	  ;; Be sure not to skip past a period which may terminate the label.
-	  (when (re-search-forward "[A-Za-z0-9]\\(\\.?[A-Za-z0-9]\\)*" nil t)
-	    (setq kcell-data (car kcell-list)
-		  ;; Repair invalid idstamps on the fly.
-		  idstamp (if (vectorp kcell-data)
-			      (or (kcell-data:idstamp kcell-data) (kview:id-increment kotl-kview))
-			    (kview:id-increment kotl-kview)))
-	    (kproperty:set 'idstamp idstamp)
-	    (kproperty:set 'kcell (car kcell-list))
-	    (setq kcell-list (cdr kcell-list)))
-	  (search-forward "\n\n" nil t)))))
+(defun kfile:insert-attributes-v2 (&optional kview kcell-list)
+  "Set cell attributes within optional KVIEW for each element in KCELL-LIST.
+Also, fix any wrong idstamps.  When null, KVIEW defaults to the value
+of the local variable, `kotl-kview'.
 
-(defun kfile:insert-attributes-v3 (kview kcell-vector)
-  "Set cell attributes within KVIEW for each element in KCELL-VECTOR.
-Assume all cell contents are already in kview and that no cells are
-hidden."
-  (let* ((kcell-num 1)
-         (label-separator (kview:label-separator kview))
-         (label-separator-regexp (regexp-quote label-separator))
-         (label-and-separator-regexp
-          (format "^[ \t]*\\([0-9]\\(\\.?[A-Za-z0-9]\\)*\\)\\([ \n]\\|%s\\)"
-                  label-separator-regexp))
-         (cell-start-or-cells-end-regexp
-          (concat label-and-separator-regexp "\\|\\'"))
-         mod-flag
-	 buffer-read-only
-	 idstamp
-	 kcell-data
-         indent
-         start
-         end
-         next)
-    (cl-flet ((kotl-mode:pre-self-insert-command () nil))
-      (while (progn
-	       (skip-chars-forward "\n")
-	       ;; !! TODO: Won't work if label-type is 'no.
-	       ;; Here we search past the cell identifier
-	       ;; for the location at which to place cell properties.
-	       ;; Be sure not to skip past a period which may terminate the label.
-	       (when (re-search-forward label-and-separator-regexp nil t)
-                 (goto-char (match-end 1))
-                 ;; Repair any cells that start with blank lines and have had
-                 ;; the label separator removed, typically due to packages that delete
-                 ;; trailing spaces.
-                 (unless (looking-at label-separator-regexp)
-                   (setq mod-flag t)
-                   ;; Remove any existing padding between label and first char of
-                   ;; cell text and then insert label-separator
-                   (delete-region (point)
-                                  (min (+ (point) (length label-separator))
-                                       (save-excursion
-                                         (skip-chars-forward "^\n") (point))))
-                   (save-excursion (insert label-separator)))
-	         (setq kcell-data (aref kcell-vector kcell-num)
-		       ;; Repair invalid idstamps on the fly.
-		       idstamp (if (vectorp kcell-data)
-			           (or (kcell-data:idstamp kcell-data)
-                                       (kview:id-increment kotl-kview))
-			         (kview:id-increment kotl-kview)))
-	         (kproperty:set 'idstamp idstamp)
-	         (kproperty:set 'kcell (kcell-data:to-kcell-v3 kcell-data))
-	         (setq kcell-num (1+ kcell-num)))
-	       (search-forward "\n\n" nil t)))
+Assume all cell contents are already in kview and that no cells are hidden."
+  (unless kview
+    (setq kview kotl-kview))
+  (save-excursion
+    (goto-char (point-min))
+    (let* ((label-separator (kview:label-separator kview))
+           (label-separator-regexp (regexp-quote label-separator))
+           (label-and-separator-regexp
+            (format "^[ \t]*\\([0-9]\\([.0-9]*[0-9]\\|[A-Za-z0-9]*\\)\\)\\([. \n]\\|%s\\)"
+                    label-separator-regexp))
 
-      ;; Repair any blank lines within cells whose indent has been
-      ;; removed due to packages that delete trailing spaces.
-      (goto-char (point-min))
-      (when (re-search-forward label-and-separator-regexp nil t)
-        (goto-char (1- (match-end 0)))
+           buffer-read-only
+	   idstamp
+	   kcell-data)
+      (cl-flet ((kotl-mode:pre-self-insert-command () nil))
+        (while
+	    (progn
+	      (skip-chars-forward "\n")
+	      ;; !! TODO: Won't work if label-type is 'no.
+	      ;; Here we search past the cell identifier
+	      ;; for the location at which to place cell properties.
+	      ;; Be sure not to skip past a period which may terminate the label.
+	      (when (re-search-forward label-and-separator-regexp nil t)
+                (goto-char (match-end 1))
+	        (setq kcell-data (car kcell-list)
+		      ;; Repair invalid idstamps on the fly.
+		      idstamp (if (vectorp kcell-data)
+			          (or (kcell-data:idstamp kcell-data) (kview:id-increment kotl-kview))
+			        (kview:id-increment kotl-kview)))
+	        (kproperty:set 'idstamp idstamp)
+	        (kproperty:set 'kcell (car kcell-list))
+	        (setq kcell-list (cdr kcell-list)))
+	      (search-forward "\n\n" nil t)))))))
+
+(defun kfile:insert-attributes-v3 (&optional kview kcell-vector)
+  "Set cell attributes within optional KVIEW for each element in KCELL-VECTOR.
+Also, fix any wrong label separators, idstamps and line indents.  When
+null, KVIEW defaults to the value of the local variable, `kotl-kview'.  If
+KCELL-VECTOR is null, ignore cell attribute setting.
+
+Assume all cell contents are already in kview and that no cells are hidden."
+  (unless kview
+    (setq kview kotl-kview))
+  (save-excursion
+    (goto-char (point-min))
+    (let* ((kcell-num 1)
+           (label-separator (kview:label-separator kview))
+           (label-separator-regexp (regexp-quote label-separator))
+           (label-and-separator-regexp
+            (format "^[ \t]*\\([0-9]\\([.0-9]*[0-9]\\|[A-Za-z0-9]*\\)\\)\\([. \n]\\|%s\\)"
+                    label-separator-regexp))
+           (cell-start-or-cells-end-regexp
+            (concat label-and-separator-regexp "\\|\\'"))
+           mod-flag
+	   buffer-read-only
+	   idstamp
+	   kcell-data
+           indent
+           start
+           end
+           next)
+      (cl-flet ((kotl-mode:pre-self-insert-command () nil))
         (while (progn
 	         (skip-chars-forward "\n")
 	         ;; !! TODO: Won't work if label-type is 'no.
 	         ;; Here we search past the cell identifier
 	         ;; for the location at which to place cell properties.
 	         ;; Be sure not to skip past a period which may terminate the label.
-                 (setq start (point)
-                       indent nil)
-	         (when (re-search-forward cell-start-or-cells-end-regexp nil t)
-                   (goto-char
-                    (if (= (match-end 0) (point-max))
-                        (point-max)
-                      (1- (match-end 0))))
-                   (setq next (point-marker))
-                   (goto-char (match-beginning 0))
-                   (skip-chars-backward "\n")
-                   (setq end (point-marker)) ;; end of prior cell text
-                   (goto-char start)
-                   (while (and (< (point) end) (search-forward "\n\n" end t))
+	         (when (re-search-forward label-and-separator-regexp nil t)
+                   (goto-char (match-end 1))
+                   ;; Repair any cells that start with blank lines and have
+                   ;; had the label separator removed, typically due to
+                   ;; packages that delete trailing spaces.
+                   (unless (looking-at label-separator-regexp)
                      (setq mod-flag t)
-                     (backward-char 1)
-                     (unless indent (setq indent (kcell-view:indent)))
-                     (insert-char ?\  indent)
-                     (forward-char 1))
-                   (unless (= next (point-max))
-                     (goto-char next))))))
+                     ;; Remove any existing padding between label and first
+                     ;; char of cell text and then insert label-separator
+                     (delete-region (point)
+                                    (min (+ (point) (length label-separator))
+                                         (save-excursion
+                                           (skip-chars-forward "^\n") (point))))
+                     (save-excursion (insert label-separator)))
 
-      (when (markerp end)
-        (set-marker end nil))
-      (when (markerp next)
-        (set-marker next nil))
-      (when mod-flag (save-buffer)))))
+                   (when kcell-vector
+	             (setq kcell-data (aref kcell-vector kcell-num)
+		           ;; Repair invalid idstamps on the fly.
+		           idstamp (if (vectorp kcell-data)
+			               (or (kcell-data:idstamp kcell-data)
+                                           (kview:id-increment kotl-kview))
+			             (kview:id-increment kotl-kview)))
+	             (kproperty:set 'idstamp idstamp)
+	             (kproperty:set 'kcell (kcell-data:to-kcell-v3 kcell-data))
+	             (setq kcell-num (1+ kcell-num))))
+	         (search-forward "\n\n" nil t)))
+
+        ;; Repair any blank lines within cells whose indent has been
+        ;; removed due to packages that delete trailing spaces.
+        (goto-char (point-min))
+        (when (re-search-forward label-and-separator-regexp nil t)
+          (goto-char (1- (match-end 0)))
+          (while (progn
+	           (skip-chars-forward "\n")
+	           ;; !! TODO: Won't work if label-type is 'no.
+	           ;; Here we search past the cell identifier for the
+	           ;; location at which to place cell properties.  Be sure
+	           ;; not to skip past a period which may terminate the
+	           ;; label.
+                   (setq start (point)
+                         indent nil)
+	           (when (re-search-forward cell-start-or-cells-end-regexp nil t)
+                     (goto-char
+                      (if (= (match-end 0) (point-max))
+                          (point-max)
+                        (1- (match-end 0))))
+                     (setq next (point-marker))
+                     (goto-char (match-beginning 0))
+                     (skip-chars-backward "\n")
+                     (setq end (point-marker)) ;; end of prior cell text
+                     (goto-char start)
+                     (while (and (< (point) end) (search-forward "\n\n" end t))
+                       (setq mod-flag t)
+                       (backward-char 1)
+                       (unless indent (setq indent (kcell-view:indent)))
+                       (insert-char ?\  indent)
+                       (forward-char 1))
+                     (unless (= next (point-max))
+                       (goto-char next))))))
+
+        (when (markerp end)
+          (set-marker end nil))
+        (when (markerp next)
+          (set-marker next nil))
+        (when mod-flag (save-buffer))))))
 
 (defun kfile:narrow-to-kcells ()
   "Narrow kotl file to kcell section only."

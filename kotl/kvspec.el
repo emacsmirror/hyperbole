@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Oct-95 at 15:17:07
-;; Last-Mod:     21-Nov-23 at 13:20:57 by Bob Weiner
+;; Last-Mod:     30-Apr-26 at 10:20:02 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -181,7 +181,9 @@ ${hyperb:dir}/kotl/EXAMPLE.kotl#3b19c=042 for details on valid view specs."
 		 (if (string-match "\\([abcd]+\\)" view-spec)
 		     (replace-match "\\1e" t nil view-spec)
 		   (concat "e" view-spec))))
-	 (setq kvspec:current view-spec))
+         (unless (equal kvspec:current view-spec)
+           (set-buffer-modified-p t)
+	   (setq kvspec:current view-spec)))
 	((or (eq view-spec t) (null kvspec:current))
 	 (setq kvspec:current (kvspec:compute))))
   ;; Update display using current specs.

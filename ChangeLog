@@ -1,9 +1,26 @@
+2026-04-30  Bob Weiner  <rsw@gnu.org>
+
+* kotl/kvspec.el (kvspec:update): If updating an existing viewspec, mark
+    buffer as modified so new viewspec is saved when writing out the file.
+
+* kotl/kfile.el (kfile:insert-attributes-v3): Fix to handle alpha and legal
+    numbering properly plus a period with no following spaces as the separator.
+    Update to 'save-excursion' and force start at (point-min) and make
+    args optional so can be called in 'kfile:write' as well as 'kfile:read'.
+
+* kotl/kotl-mode.el (kotl-mode): Prevent 'delete-trailing-whitespace-mode'
+    from deleting trailing whitespace from any lines within kcells.  Ensure
+    "stripmode" package does not delete trailing whitespace from cells whose
+    first line is blank or editing will not start at the proper column.
+
+* kotl/kotl-mode.el (kotl-mode:just-one-space): Add optional N arg of how
+    many spaces to leave that 'just-one-space supports and update doc string.
+    Since works for a single line only, does not support -N for removing
+    newlines as 'just-one-space' does.
+
 2026-04-29  Bob Weiner  <rsw@gnu.org>
 
-* kotl/kfile.el (kfile:write): Ensure "stripmode" package does not delete
-    trailing whitespace from cells whose first line is blank or editing
-    will not start at the proper column.
-                (kfile:insert-attributes-v3): When reading in an exising
+* kotl/kfile.el (kfile:insert-attributes-v3): When reading in an exising
     Koutline, repair any cells that start with a blank line and have had
     the label separator removed or where lines of just whitespace have been
     remove due to packages that delete trailing spaces.  Also ensure search
