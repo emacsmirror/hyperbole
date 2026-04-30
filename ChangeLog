@@ -1,3 +1,14 @@
+2026-04-29  Bob Weiner  <rsw@gnu.org>
+
+* kotl/kfile.el (kfile:write): Ensure "stripmode" package does not delete
+    trailing whitespace from cells whose first line is blank or editing
+    will not start at the proper column.
+                (kfile:insert-attributes-v3): When reading in an exising
+    Koutline, repair any cells that start with a blank line and have had
+    the label separator removed or where lines of just whitespace have been
+    remove due to packages that delete trailing spaces.  Also ensure search
+    for relative ids that only start with a digit, not alpha chars.
+
 2026-04-21  Mats Lidell  <matsl@gnu.org>
 
 * Makefile (COVERAGE_TESTSPEC): Use test= for specifying the test selector
