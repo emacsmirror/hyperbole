@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    6/30/93
-;; Last-Mod:     12-Apr-26 at 11:24:21 by Bob Weiner
+;; Last-Mod:     30-Apr-26 at 13:34:27 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -32,7 +32,9 @@
 (defvar completion-to-accept)
 (defvar mwheel-scroll-down-function)    ; "mwheel"
 
+(declare-function delete-trailing-whitespace-mode "simple")
 (declare-function outline-invisible-in-p "hyperbole")
+(declare-function stripspace-local-mode "ext:stripspace")
 
 ;;; ************************************************************************
 ;;; Public variables
@@ -132,6 +134,16 @@ It provides the following keys:
 	  paragraph-separate
 	  paragraph-start
 	  selective-display-ellipses))
+  ;; Prevent 'delete-trailing-whitespace-mode' from deleting trailing
+  ;; whitespace from any lines within kcells.
+  (when (bound-and-true-p delete-trailing-whitespace-mode)
+    (delete-trailing-whitespace-mode 0))
+  ;; Prevent "stripspace" package from deleting trailing whitespace from the
+  ;; first line of cells which are blank.  These need to maintain spaces after
+  ;; the relative identifier to ensure proper editing of the first line.
+  (when (bound-and-true-p stripspace-local-mode)
+    (stripspace-local-mode 0))
+  ;; Fix any wrong label separators and line indents.
   ;; Enable Org Table editing minor mode so that necessary key binding
   ;; overrides are made.  If not desired, the user can disable it via
   ;; `kotl-mode-hook'.
@@ -719,14 +731,15 @@ With optional prefix argument TOP-P non-nil, refill all cells in the outline."
   ;; Temporarily expand, then refill cells lacking no-fill property.
   (kview:map-expanded-tree (lambda (_kview) (kotl-mode:fill-cell)) kotl-kview top-p))
 
-(defun kotl-mode:just-one-space ()
-  "Delete all spaces and tabs around point and leave one space."
+(defun kotl-mode:just-one-space (&optional N)
+  "Delete all spaces and tabs around point, leaving one or optional N spaces.
+Does not remove any newlines as `just-one-space' does when given a negative N."
   (interactive "*")
   (save-excursion
     (save-restriction
       (save-excursion
 	(narrow-to-region (kotl-mode:beginning-of-line) (kotl-mode:to-end-of-line)))
-      (just-one-space))))
+      (just-one-space n))))
 
 (defun kotl-mode:kill-line (&optional arg)
   "Kill ARG lines from point."
