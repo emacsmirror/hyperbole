@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    6/30/93
-;; Last-Mod:     30-Apr-26 at 13:24:57 by Bob Weiner
+;; Last-Mod:     30-Apr-26 at 13:34:27 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -34,6 +34,7 @@
 
 (declare-function delete-trailing-whitespace-mode "simple")
 (declare-function outline-invisible-in-p "hyperbole")
+(declare-function stripspace-local-mode "ext:stripspace")
 
 ;;; ************************************************************************
 ;;; Public variables
