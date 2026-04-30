@@ -26,6 +26,16 @@
     remove due to packages that delete trailing spaces.  Also ensure search
     for relative ids that only start with a digit, not alpha chars.
 
+2026-04-21  Mats Lidell  <matsl@gnu.org>
+
+* Makefile (COVERAGE_TESTSPEC): Use test= for specifying the test selector
+    to be used when running coverage check. Defaults to t.
+
+2026-04-16  Mats Lidell  <matsl@gnu.org>
+
+* test/hyrolo-tests.el (hyrolo-tests--tab-through-matches): Verifies
+    that the path name is not selected when tabbing through matches.
+
 2026-04-13  Bob Weiner  <rsw@gnu.org>
 
 * hyrolo.el (hyrolo-next-match, hyrolo-next-regexp-match,
